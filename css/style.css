@@ -1,0 +1,384 @@
+/* ============================================================
+   Impara con Me — stile pensato per bambini con deficit cognitivo:
+   - pulsanti molto grandi e ben distanziati
+   - alto contrasto, pochi elementi per schermata
+   - animazioni delicate (disattivate con prefers-reduced-motion)
+   ============================================================ */
+
+:root {
+  --sfondo: #fdf6ec;
+  --carta: #ffffff;
+  --testo: #3a3330;
+  --testo-soft: #7a6f66;
+  --ombra: 0 6px 0 rgba(58, 51, 48, 0.12);
+  --raggio: 28px;
+
+  --blu: #4a90d9;      --blu-chiaro: #dceafb;
+  --verde: #4caf7d;    --verde-chiaro: #ddf3e7;
+  --arancio: #ef8b3a;  --arancio-chiaro: #fdeada;
+  --viola: #9068c0;    --viola-chiaro: #ece2f8;
+  --rosso-soft: #e57373;
+  --giallo: #f6c344;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overscroll-behavior: none;
+}
+
+body {
+  background: var(--sfondo);
+  color: var(--testo);
+  font-family: "Trebuchet MS", "Segoe UI", "Arial Rounded MT Bold", Arial, sans-serif;
+  font-size: 20px;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#app {
+  max-width: 640px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: max(12px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+}
+
+button {
+  font-family: inherit;
+  color: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* ---------- barra superiore, sempre uguale su ogni schermata ---------- */
+
+.barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 72px;
+  margin-bottom: 8px;
+}
+
+.btn-tondo {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: var(--carta);
+  box-shadow: var(--ombra);
+  font-size: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.btn-tondo:active { transform: translateY(3px); box-shadow: 0 3px 0 rgba(58,51,48,0.12); }
+
+.barra .titolo-schermata {
+  flex: 1;
+  text-align: center;
+  font-size: 30px;
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-genitori { position: relative; font-size: 28px; opacity: 0.55; }
+
+.btn-genitori .anello {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 5px solid var(--viola);
+  clip-path: inset(0 100% 0 0);
+}
+
+/* ---------- schermata home ---------- */
+
+.home-testata {
+  text-align: center;
+  margin: 12px 0 20px;
+}
+
+.home-testata .logo { font-size: 64px; line-height: 1; }
+
+.home-testata h1 {
+  margin: 8px 0 0;
+  font-size: 34px;
+}
+
+.menu-moduli {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex: 1;
+}
+
+.btn-modulo {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 22px 26px;
+  border-radius: var(--raggio);
+  box-shadow: var(--ombra);
+  font-size: 34px;
+  font-weight: bold;
+  min-height: 110px;
+  text-align: left;
+}
+
+.btn-modulo:active { transform: translateY(3px); box-shadow: 0 3px 0 rgba(58,51,48,0.12); }
+
+.btn-modulo .emoji { font-size: 52px; }
+
+.btn-modulo.blu     { background: var(--blu-chiaro);     border: 4px solid var(--blu); }
+.btn-modulo.verde   { background: var(--verde-chiaro);   border: 4px solid var(--verde); }
+.btn-modulo.arancio { background: var(--arancio-chiaro); border: 4px solid var(--arancio); }
+.btn-modulo.viola   { background: var(--viola-chiaro);   border: 4px solid var(--viola); }
+
+/* ---------- griglie di carte ---------- */
+
+.griglia {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 16px;
+  padding-bottom: 24px;
+}
+
+.carta {
+  background: var(--carta);
+  border-radius: var(--raggio);
+  box-shadow: var(--ombra);
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-weight: bold;
+  border: 4px solid transparent;
+}
+
+.carta:active { transform: translateY(3px); box-shadow: 0 3px 0 rgba(58,51,48,0.12); }
+
+.carta .glifo { font-size: 52px; line-height: 1; }
+.carta .mini  { font-size: 30px; line-height: 1; }
+
+.modulo-blu .carta     { border-color: var(--blu-chiaro); }
+.modulo-verde .carta   { border-color: var(--verde-chiaro); }
+.modulo-arancio .carta { border-color: var(--arancio-chiaro); }
+
+/* ---------- schermata dettaglio (impara) ---------- */
+
+.dettaglio {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  text-align: center;
+}
+
+.dettaglio .glifone {
+  font-size: clamp(110px, 32vw, 180px);
+  font-weight: bold;
+  line-height: 1;
+}
+
+.dettaglio .glifone.parola { font-size: clamp(48px, 13vw, 84px); }
+
+.dettaglio .figura { font-size: clamp(60px, 18vw, 110px); line-height: 1; }
+
+.dettaglio .conteggio {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  max-width: 420px;
+  font-size: clamp(34px, 9vw, 52px);
+  line-height: 1.1;
+}
+
+.dettaglio .sotto {
+  font-size: 30px;
+  font-weight: bold;
+  color: var(--testo-soft);
+}
+
+.nav-dettaglio {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  padding: 12px 0 8px;
+}
+
+.nav-dettaglio .btn-tondo { width: 84px; height: 84px; font-size: 40px; }
+.nav-dettaglio .btn-audio { background: var(--giallo); }
+
+/* ---------- gioco "trova" ---------- */
+
+.gioco-domanda {
+  text-align: center;
+  margin: 10px 0 20px;
+}
+
+.gioco-domanda .btn-ripeti {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--giallo);
+  border-radius: var(--raggio);
+  box-shadow: var(--ombra);
+  padding: 16px 26px;
+  font-size: 30px;
+  font-weight: bold;
+}
+
+.gioco-domanda .btn-ripeti:active { transform: translateY(3px); box-shadow: 0 3px 0 rgba(58,51,48,0.12); }
+
+.gioco-scelte {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  flex: 1;
+  align-content: center;
+}
+
+.gioco-scelte.tre { grid-template-columns: 1fr 1fr; }
+.gioco-scelte.tre .scelta:last-child { grid-column: 1 / -1; }
+
+.scelta {
+  background: var(--carta);
+  border-radius: var(--raggio);
+  box-shadow: var(--ombra);
+  border: 4px solid var(--blu-chiaro);
+  min-height: 170px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 64px;
+  font-weight: bold;
+}
+
+.scelta .mini { font-size: 34px; }
+
+.scelta:active { transform: translateY(3px); }
+
+.scelta.giusta {
+  background: var(--verde-chiaro);
+  border-color: var(--verde);
+  animation: salta 0.6s ease;
+}
+
+.scelta.sbagliata {
+  opacity: 0.35;
+  animation: scuoti 0.4s ease;
+}
+
+.stelle {
+  text-align: center;
+  font-size: 34px;
+  letter-spacing: 6px;
+  min-height: 48px;
+  padding: 6px 0;
+}
+
+.stelle .vuota { opacity: 0.25; }
+
+/* ---------- festa (traguardo raggiunto) ---------- */
+
+.festa {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  text-align: center;
+}
+
+.festa .coriandoli { font-size: 72px; animation: salta 0.8s ease infinite alternate; }
+.festa h2 { font-size: 40px; margin: 0; }
+
+.btn-grande {
+  background: var(--verde-chiaro);
+  border: 4px solid var(--verde);
+  border-radius: var(--raggio);
+  box-shadow: var(--ombra);
+  padding: 20px 34px;
+  font-size: 30px;
+  font-weight: bold;
+  min-height: 88px;
+}
+
+.btn-grande:active { transform: translateY(3px); box-shadow: 0 3px 0 rgba(58,51,48,0.12); }
+
+.btn-grande.secondario { background: var(--carta); border-color: var(--blu-chiaro); }
+
+/* ---------- area genitori ---------- */
+
+.genitori { display: flex; flex-direction: column; gap: 18px; padding-bottom: 24px; }
+
+.genitori .nota { color: var(--testo-soft); font-size: 18px; margin: 0; }
+
+.opzione {
+  background: var(--carta);
+  border-radius: var(--raggio);
+  box-shadow: var(--ombra);
+  padding: 18px 22px;
+}
+
+.opzione .etichetta { font-weight: bold; margin-bottom: 12px; }
+
+.opzione .valori { display: flex; gap: 12px; flex-wrap: wrap; }
+
+.btn-valore {
+  border: 3px solid var(--blu-chiaro);
+  border-radius: 20px;
+  padding: 12px 20px;
+  font-size: 20px;
+  font-weight: bold;
+  min-height: 56px;
+  background: var(--sfondo);
+}
+
+.btn-valore.attivo { background: var(--blu-chiaro); border-color: var(--blu); }
+
+/* ---------- animazioni ---------- */
+
+@keyframes salta {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-14px); }
+}
+
+@keyframes scuoti {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* ---------- schermi piccoli ---------- */
+
+@media (max-width: 380px) {
+  body { font-size: 18px; }
+  .btn-modulo { font-size: 28px; min-height: 96px; }
+  .griglia { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+}
