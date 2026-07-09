@@ -17,6 +17,9 @@
     velocita: 0.75,      // velocità della voce (lenta)
     audio: true,
     suoni: true,         // suono di festa quando si fa giusto
+    nome: '',            // nome del bambino (per i complimenti)
+    genere: null,        // 'm' | 'f' — per bravo/brava
+    onboardingFatto: false,
   };
 
   let impostazioni = caricaImpostazioni();
@@ -33,14 +36,57 @@
     try { localStorage.setItem('impostazioni', JSON.stringify(impostazioni)); } catch {}
   }
 
-  /* ---------- sintesi vocale (voce italiana, lenta e chiara) ---------- */
+  /* ---------- statistiche (giusti/sbagliati) ----------
+     Salvate sul dispositivo, sia per attività sia per singolo elemento.
+     Servono ai genitori per vedere i progressi e sono la base per la
+     futura difficoltà adattiva (aumentare la sfida dove il bambino
+     è già bravo). */
+
+  let statistiche = caricaStatistiche();
+
+  function caricaStatistiche() {
+    try { return JSON.parse(localStorage.getItem('statistiche') || '{}'); }
+    catch { return {}; }
+  }
+
+  function salvaStatistiche() {
+    try { localStorage.setItem('statistiche', JSON.stringify(statistiche)); } catch {}
+  }
+
+  function registra(attivita, itemId, giusto) {
+    if (!statistiche[attivita]) statistiche[attivita] = { giusti: 0, sbagliati: 0, items: {} };
+    const a = statistiche[attivita];
+    if (giusto) a.giusti++; else a.sbagliati++;
+    if (itemId != null) {
+      if (!a.items[itemId]) a.items[itemId] = { giusti: 0, sbagliati: 0 };
+      if (giusto) a.items[itemId].giusti++; else a.items[itemId].sbagliati++;
+    }
+    salvaStatistiche();
+  }
+
+  /* ---------- sintesi vocale (voce italiana, viva e calorosa) ---------- */
 
   let voceItaliana = null;
 
+  /* Sceglie la voce italiana più bella disponibile: le voci "naturali"
+     di Google/Apple suonano molto più accattivanti di quelle di sistema,
+     e una voce femminile morbida è più adatta a un bambino piccolo. */
   function scegliVoce() {
     if (!('speechSynthesis' in window)) return;
-    const voci = speechSynthesis.getVoices();
-    voceItaliana = voci.find(v => v.lang === 'it-IT') || voci.find(v => v.lang.startsWith('it')) || null;
+    const voci = speechSynthesis.getVoices().filter(v => v.lang && v.lang.toLowerCase().startsWith('it'));
+    if (!voci.length) { voceItaliana = null; return; }
+    const punteggio = (v) => {
+      const n = (v.name || '').toLowerCase();
+      let s = 0;
+      if (v.lang.toLowerCase() === 'it-it') s += 2;
+      if (/google/.test(n)) s += 6;                                   // voci Google: molto naturali
+      if (/(natural|neural|enhanced|premium|siri)/.test(n)) s += 6;    // voci ad alta qualità
+      if (/(alice|federica|elsa|carla|paola|giulia|chiara|emma)/.test(n)) s += 3; // femminili morbide
+      if (/(luca|diego|cosimo)/.test(n)) s += 1;
+      return s;
+    };
+    voci.sort((a, b) => punteggio(b) - punteggio(a));
+    voceItaliana = voci[0];
   }
 
   if ('speechSynthesis' in window) {
@@ -48,19 +94,50 @@
     speechSynthesis.onvoiceschanged = scegliVoce;
   }
 
+  /* parla(testo, { rate, pitch, festa })
+     - festa: consegna allegra ed espressiva (voce più acuta e vivace),
+       usata per i complimenti così suonano davvero entusiasti. */
   function parla(testo, opzioni = {}) {
     if (!impostazioni.audio || !('speechSynthesis' in window)) return;
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(testo);
     u.lang = 'it-IT';
     if (voceItaliana) u.voice = voceItaliana;
-    u.rate = opzioni.rate || impostazioni.velocita;
-    u.pitch = 1.05;
+    if (opzioni.festa) {
+      // acuto e un po' più veloce: suona gioioso e sorpreso
+      u.rate = opzioni.rate || Math.max(impostazioni.velocita, 1.0);
+      u.pitch = opzioni.pitch || (1.3 + Math.random() * 0.2);
+    } else {
+      u.rate = opzioni.rate || impostazioni.velocita;
+      u.pitch = opzioni.pitch || 1.15;
+    }
     speechSynthesis.speak(u);
   }
 
   function casuale(lista) {
     return lista[Math.floor(Math.random() * lista.length)];
+  }
+
+  /* ---------- complimenti e incoraggiamenti (col nome e col genere) ---------- */
+
+  function aggBravo(maiuscolo) {
+    const w = impostazioni.genere === 'f' ? 'brava' : 'bravo';
+    return maiuscolo ? w.charAt(0).toUpperCase() + w.slice(1) : w;
+  }
+
+  /* Complimento vario: a volte di genere (Bravo/Brava), a volte neutro,
+     e spesso col nome del bambino, così ogni festa suona diversa. */
+  function lode() {
+    const genere = impostazioni.genere === 'f' ? LODI_F : LODI_M;
+    let frase = Math.random() < 0.6 ? casuale(genere) : casuale(LODI_NEUTRE);
+    if (impostazioni.nome && Math.random() < 0.6) frase += ` ${impostazioni.nome}`;
+    return frase + '!';
+  }
+
+  function incoraggiamento() {
+    let frase = casuale(INCORAGGIAMENTI);
+    if (impostazioni.nome && Math.random() < 0.35) frase = `Dai ${impostazioni.nome}! ${frase}`;
+    return frase;
   }
 
   /* ---------- suono di festa (Web Audio, nessun file esterno) ---------- */
@@ -190,6 +267,64 @@
   function collegaCasa() {
     const btn = document.getElementById('btn-casa');
     if (btn) btn.addEventListener('click', () => vaiHome());
+  }
+
+  /* ---------- ONBOARDING: nome e genere del bambino ----------
+     Serve per rivolgersi al bambino per nome e per usare i complimenti
+     al maschile o al femminile. Si può rifare dall'area genitori. */
+
+  function vaiOnboarding(modifica = false) {
+    let genereScelto = impostazioni.genere;
+
+    render(`
+      ${modifica ? barra('👋 Il bambino') : ''}
+      <div class="onboarding">
+        <div class="mascotte-dondola">${mascotte('felice', 150)}</div>
+        <h1>Ciao!</h1>
+        <p class="nota grande">Come si chiama il bambino o la bambina?</p>
+        <input id="campo-nome" class="campo-nome" type="text" maxlength="16"
+               placeholder="Nome" value="${(impostazioni.nome || '').replace(/"/g, '&quot;')}"
+               autocomplete="off" autocapitalize="words">
+        <p class="nota grande">È un maschietto o una femminuccia?</p>
+        <div class="scelte-genere">
+          <button class="btn-genere ${genereScelto === 'm' ? 'attivo' : ''}" data-genere="m">
+            <span class="faccia">👦</span><span>Maschio</span>
+          </button>
+          <button class="btn-genere ${genereScelto === 'f' ? 'attivo' : ''}" data-genere="f">
+            <span class="faccia">👧</span><span>Femmina</span>
+          </button>
+        </div>
+        <button class="btn-grande" id="btn-inizia" ${genereScelto ? '' : 'disabled'}>
+          ${modifica ? '💾 Salva' : '🚀 Inizia!'}
+        </button>
+      </div>
+    `);
+
+    if (modifica) collegaCasa();
+
+    app.querySelectorAll('.btn-genere').forEach(btn => {
+      btn.addEventListener('click', () => {
+        genereScelto = btn.dataset.genere;
+        app.querySelectorAll('.btn-genere').forEach(b => b.classList.toggle('attivo', b === btn));
+        document.getElementById('btn-inizia').disabled = false;
+        parla(genereScelto === 'f' ? 'Femmina' : 'Maschio');
+      });
+    });
+
+    document.getElementById('btn-inizia').addEventListener('click', () => {
+      if (!genereScelto) return;
+      impostazioni.nome = document.getElementById('campo-nome').value.trim().slice(0, 16);
+      impostazioni.genere = genereScelto;
+      impostazioni.onboardingFatto = true;
+      salvaImpostazioni();
+      if (modifica) {
+        vaiGenitori();
+      } else {
+        vaiHome();
+        const saluto = impostazioni.nome ? `Ciao ${impostazioni.nome}!` : 'Ciao!';
+        parla(`${saluto} Impariamo insieme!`, { festa: true });
+      }
+    });
   }
 
   /* ---------- HOME ---------- */
@@ -456,13 +591,15 @@
         if (risolto) return;
         if (carta.dataset.id === bersaglio.id) {
           risolto = true;
+          registra('trova-' + idModulo, bersaglio.id, true);
           carta.classList.add('giusta');
           festeggiaMascotte();
-          parla(casuale(LODI), { rate: 1 });
+          parla(lode(), { festa: true });
           dopo(1600, () => vaiGioco(idModulo, pool, indietro, stelle + 1));
           return;
         }
         errori++;
+        registra('trova-' + idModulo, bersaglio.id, false);
         if (idModulo === 'parole') {
           // nelle parole la carta sbagliata non si spegne: si riprova,
           // e al terzo tentativo compaiono le figure come aiuto
@@ -470,14 +607,14 @@
           dopo(500, () => carta.classList.remove('scossa'));
           if (errori >= 2) {
             app.querySelectorAll('.scelta .figura').forEach(f => { f.hidden = false; });
-            parla(`${casuale(INCORAGGIAMENTI)} Guarda i disegni!`, { rate: 1 });
+            parla(`${incoraggiamento()} Guarda i disegni!`);
           } else {
-            parla(casuale(INCORAGGIAMENTI), { rate: 1 });
+            parla(incoraggiamento());
           }
         } else {
           carta.classList.add('sbagliata');
           carta.disabled = true;
-          parla(casuale(INCORAGGIAMENTI), { rate: 1 });
+          parla(incoraggiamento());
         }
         // ripete la domanda solo se nel frattempo non si è già risposto bene
         dopo(1800, () => { if (!risolto) parla(domanda); });
@@ -486,12 +623,14 @@
   }
 
   function vaiFesta(riparti) {
+    const bravissimo = impostazioni.genere === 'f' ? 'Bravissima' : 'Bravissimo';
+    const conNome = impostazioni.nome ? `${bravissimo} ${impostazioni.nome}` : bravissimo;
     render(`
       ${barra('')}
       <div class="festa">
         <div class="coriandoli">🎉⭐🎉</div>
         <div class="mascotte-dondola">${mascotte('felice', 190)}</div>
-        <h2>Bravissimo!</h2>
+        <h2>${conNome}!</h2>
         <div style="font-size:30px">Hai vinto ${STELLE_PER_VINCERE} stelle!</div>
         <button class="btn-grande" id="btn-ancora">🎮 Gioca ancora</button>
         <button class="btn-grande secondario" id="btn-fine">🏠 Basta così</button>
@@ -499,7 +638,7 @@
     `);
 
     collegaCasa();
-    parla('Bravissimo! Hai vinto cinque stelle! Evviva!', { rate: 0.95 });
+    parla(`${conNome}! Hai vinto cinque stelle! Evviva!`, { festa: true });
     document.getElementById('btn-ancora').addEventListener('click', riparti);
     document.getElementById('btn-fine').addEventListener('click', () => vaiHome());
   }
@@ -572,17 +711,19 @@
         if (risolto) return;
         if (carta.dataset.lettera === letteraGiusta) {
           risolto = true;
+          registra('completa', letteraGiusta, true);
           carta.classList.add('giusta');
           const tessera = document.getElementById('tessera-buco');
           tessera.textContent = mostraTesto(letteraGiusta);
           tessera.classList.add('riempita');
           festeggiaMascotte();
-          parla(`${casuale(LODI)} ${parola.say}!`, { rate: 1 });
+          parla(`${lode()} ${parola.say}!`, { festa: true });
           dopo(1900, () => vaiGiocoParola(stelle + 1));
         } else {
+          registra('completa', letteraGiusta, false);
           carta.classList.add('sbagliata');
           carta.disabled = true;
-          parla(casuale(INCORAGGIAMENTI), { rate: 1 });
+          parla(incoraggiamento());
           dopo(1800, () => { if (!risolto) parla(parola.say); });
         }
       });
@@ -839,8 +980,9 @@
 
       if (esito.ok) {
         risolto = true;
+        registra('scrivi-' + idModulo, item.id, true);
         festeggiaMascotte();
-        parla(`${casuale(LODI)} ${item.say}!`, { rate: 1 });
+        parla(`${lode()} ${item.say}!`, { festa: true });
         dopo(1900, () => vaiDettato(idModulo, stelle + 1));
         return;
       }
@@ -851,6 +993,7 @@
         parla('Scrivi qui, bello grande!');
         return;
       }
+      registra('scrivi-' + idModulo, item.id, false);
       // primo aiuto: compare la traccia grigia; poi diventa più scura
       mostraAiuto(tentativi >= 2);
       pulisci();
@@ -874,10 +1017,24 @@
         </div>
       </div>`;
 
+    const nomeMostrato = impostazioni.nome || '(non impostato)';
+    const genereMostrato = impostazioni.genere === 'f' ? '👧 Femmina' : impostazioni.genere === 'm' ? '👦 Maschio' : '—';
+
     render(`
       ${barra('⚙️ Genitori')}
       <div class="genitori">
         <p class="nota">Impostazioni per adattare l'app al bambino. Questa pagina si apre solo tenendo premuto l'ingranaggio per 2 secondi.</p>
+
+        <div class="opzione">
+          <div class="etichetta">Bambino</div>
+          <div class="riga-bambino">
+            <div><strong>${nomeMostrato}</strong> · ${genereMostrato}</div>
+            <button class="btn-valore" id="btn-modifica-bambino">✏️ Cambia</button>
+          </div>
+        </div>
+
+        ${bloccoProgressi()}
+
         ${opzione('Scelte nel gioco (meno scelte = più facile)', 'numScelte', [
           { testo: '2 scelte', valore: '2', attivo: impostazioni.numScelte === 2 },
           { testo: '3 scelte', valore: '3', attivo: impostazioni.numScelte === 3 },
@@ -902,7 +1059,7 @@
     `);
 
     collegaCasa();
-    app.querySelectorAll('.btn-valore').forEach(btn => {
+    app.querySelectorAll('.opzione .btn-valore[data-opzione]').forEach(btn => {
       btn.addEventListener('click', () => {
         const nome = btn.dataset.opzione;
         const valore = btn.dataset.valore;
@@ -915,9 +1072,69 @@
         vaiGenitori();
       });
     });
+
+    document.getElementById('btn-modifica-bambino').addEventListener('click', () => vaiOnboarding(true));
+
+    const btnAzzera = document.getElementById('btn-azzera');
+    if (btnAzzera) btnAzzera.addEventListener('click', () => {
+      statistiche = {};
+      salvaStatistiche();
+      vaiGenitori();
+    });
+  }
+
+  /* Riepilogo dei progressi per l'area genitori: totali e dettaglio
+     per attività, con la percentuale di risposte corrette. */
+  const ETICHETTE_ATTIVITA = {
+    'trova-numeri': '🎮 Trova numeri',
+    'trova-lettere': '🎮 Trova lettere',
+    'trova-parole': '🎮 Trova parole',
+    'completa': '🧩 Completa la parola',
+    'scrivi-numeri': '✍️ Scrivi numeri',
+    'scrivi-lettere': '✍️ Scrivi lettere',
+  };
+
+  function bloccoProgressi() {
+    const chiavi = Object.keys(ETICHETTE_ATTIVITA).filter(k => statistiche[k]);
+    if (!chiavi.length) {
+      return `
+        <div class="opzione">
+          <div class="etichetta">Progressi</div>
+          <p class="nota">Ancora nessun gioco completato. Qui vedrai quante risposte giuste e sbagliate fa il bambino in ogni attività.</p>
+        </div>`;
+    }
+
+    let totG = 0, totS = 0;
+    const righe = chiavi.map(k => {
+      const s = statistiche[k];
+      totG += s.giusti; totS += s.sbagliati;
+      const tot = s.giusti + s.sbagliati;
+      const perc = tot ? Math.round(s.giusti / tot * 100) : 0;
+      return `
+        <div class="riga-stat">
+          <span class="nome-stat">${ETICHETTE_ATTIVITA[k]}</span>
+          <span class="val-stat"><span class="ok">${s.giusti} ✓</span> · <span class="ko">${s.sbagliati} ✗</span> · ${perc}%</span>
+        </div>`;
+    }).join('');
+
+    const totTot = totG + totS;
+    const percTot = totTot ? Math.round(totG / totTot * 100) : 0;
+
+    return `
+      <div class="opzione">
+        <div class="etichetta">Progressi</div>
+        <div class="riga-stat totale">
+          <span class="nome-stat">Totale</span>
+          <span class="val-stat"><span class="ok">${totG} ✓</span> · <span class="ko">${totS} ✗</span> · ${percTot}%</span>
+        </div>
+        ${righe}
+        <p class="nota">Le percentuali più alte indicano dove il bambino è più sicuro: in futuro l'app renderà quelle attività un po' più impegnative.</p>
+        <div class="valori"><button class="btn-valore" id="btn-azzera">🗑️ Azzera i progressi</button></div>
+      </div>`;
   }
 
   /* ---------- avvio ---------- */
 
-  vaiHome();
+  if (impostazioni.onboardingFatto) vaiHome();
+  else vaiOnboarding();
 })();

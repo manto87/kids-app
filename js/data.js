@@ -106,6 +106,10 @@ const DATA = {
   },
 };
 
-/* Frasi di rinforzo positivo e di incoraggiamento (mai punitive). */
-const LODI = ['Bravissimo!', 'Sì! Evviva!', 'Ottimo lavoro!', 'Che bravo!', 'Perfetto!'];
-const INCORAGGIAMENTI = ['Quasi! Prova ancora.', 'Riprova, ce la fai!', 'Ancora un tentativo!'];
+/* Frasi di rinforzo positivo e di incoraggiamento (mai punitive).
+   Le lodi hanno la versione maschile e femminile; il nome e il genere
+   vengono aggiunti da app.js in base al bambino. */
+const LODI_M = ['Bravo', 'Bravissimo', 'Che bravo', 'Sei bravissimo', 'Super bravo'];
+const LODI_F = ['Brava', 'Bravissima', 'Che brava', 'Sei bravissima', 'Super brava'];
+const LODI_NEUTRE = ['Sì, evviva', 'Ottimo lavoro', 'Perfetto', 'Fantastico', 'Wow, che bello', 'Grande', 'Benissimo', 'Uau, che forza'];
+const INCORAGGIAMENTI = ['Quasi! Prova ancora.', 'Riprova, ce la fai!', 'Ancora un tentativo!', 'Ci sei quasi!', 'Dai, prova di nuovo!'];
