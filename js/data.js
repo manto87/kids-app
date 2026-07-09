@@ -113,3 +113,20 @@ const LODI_M = ['Bravo', 'Bravissimo', 'Che bravo', 'Sei bravissimo', 'Super bra
 const LODI_F = ['Brava', 'Bravissima', 'Che brava', 'Sei bravissima', 'Super brava'];
 const LODI_NEUTRE = ['Sì, evviva', 'Ottimo lavoro', 'Perfetto', 'Fantastico', 'Wow, che bello', 'Grande', 'Benissimo', 'Uau, che forza'];
 const INCORAGGIAMENTI = ['Quasi! Prova ancora.', 'Riprova, ce la fai!', 'Ancora un tentativo!', 'Ci sei quasi!', 'Dai, prova di nuovo!'];
+
+/* Elementi facili da confondere: usati come distrattori "insidiosi" ai livelli
+   di difficoltà alti (adattiva). Chiavi: il glifo del bersaglio (le lettere in
+   minuscolo). Se il set non basta, i distrattori si completano a caso. */
+const SIMILI_NUMERI = {
+  '1': ['7', '4'], '2': ['3', '7'], '3': ['8', '5'], '4': ['1', '9'],
+  '5': ['6', '3'], '6': ['9', '8'], '7': ['1', '4'], '8': ['3', '6'],
+  '9': ['6', '4'], '10': ['1', '6'],
+};
+
+const SIMILI_LETTERE = {
+  a: ['o', 'e'], b: ['d', 'p'], c: ['o', 'g', 'e'], d: ['b', 'p'],
+  e: ['f', 'c', 'a'], f: ['e', 't'], g: ['c', 'q', 'o'], h: ['n', 'b'],
+  i: ['l', 't'], l: ['i', 't'], m: ['n', 'u'], n: ['m', 'h', 'u'],
+  o: ['c', 'a', 'q'], p: ['q', 'b'], q: ['p', 'o', 'g'], r: ['n', 'p'],
+  s: ['z', 'c'], t: ['f', 'l'], u: ['v', 'n'], v: ['u', 'y'], z: ['s', 'n'],
+};
