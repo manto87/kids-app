@@ -23,11 +23,15 @@ npx http-server /path/al/repo -p 8321 -s     # oppure python3 -m http.server
 
 ## Flussi da guidare
 
-0. ONBOARDING (prima schermata, se `impostazioni.onboardingFatto` è falso):
-   `#campo-nome` + `.btn-genere[data-genere=m|f]` (abilita `#btn-inizia`) → home.
+0. PROFILI: dati in `localStorage.profili` = `{profili:[{id,nome,genere,numScelte,maiuscole,statistiche}], attivo}`;
+   voce/suoni in `localStorage.dispositivo`. Migrazione automatica dal vecchio
+   `impostazioni`/`statistiche` a un profilo. Primo avvio (nessun profilo):
+   form `#campo-nome` + `.btn-genere[data-genere=m|f]` (abilita `#btn-inizia`) → home.
    Genere femmina ⇒ i complimenti non devono MAI contenere "bravo/bravissimo"
-   maschili (usare `lode()`); il nome compare spesso. Nei test: svuotare prima
-   il localStorage o completare sempre l'onboarding.
+   maschili (usare `lode()`); il nome compare spesso.
+   Area genitori: `.lista-profili` (`[data-scegli]` per attivare, `[data-modifica]`
+   per modificare), `#btn-nuovo-bambino` crea un profilo. Le statistiche e la
+   difficoltà (numScelte/maiuscole) sono PER BAMBINO; velocità/voce/suoni del dispositivo.
 1. Home → Numeri → carta → dettaglio (glifo, conteggio emoji, audio) → frecce avanti/indietro.
 2. Home → Lettere → carta A → dettaglio ("A a", "a. A come Ape").
 3. Home → Parole → categoria → parola → dettaglio.
@@ -61,10 +65,10 @@ npx http-server /path/al/repo -p 8321 -s     # oppure python3 -m http.server
    respingono i tracciati densi.
 9. Suono ta-da: spia `AudioContext.prototype.createOscillator` in addInitScript;
    una risposta giusta crea 3 oscillatori.
-10. Statistiche: ogni risposta chiama `registra(attivita, itemId, giusto)` →
-    `localStorage.statistiche` (per attività e per elemento). L'area genitori
-    mostra il blocco Progressi (`.riga-stat.totale`), `#btn-azzera` (reset) e
-    `#btn-modifica-bambino` (rientra nell'onboarding in modifica).
+10. Statistiche: `registra(attivita, itemId, giusto)` scrive in
+    `profiloAttivo().statistiche` (per attività e per elemento) → `localStorage.profili`.
+    L'area genitori mostra Progressi del bambino attivo (`.riga-stat.totale`) e
+    `#btn-azzera` (reset solo del bambino attivo).
 
 ## Attenzioni
 
