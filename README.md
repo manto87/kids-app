@@ -12,7 +12,9 @@ schermata home del telefono o del tablet come una vera app e funziona anche
 - **🔢 Numeri** — da 1 a 10, con il numero grande, gli oggetti da contare e la voce che li pronuncia.
 - **🔤 Lettere** — l'alfabeto italiano (21 lettere), ognuna con una parola e un'immagine ("A come Ape 🐝").
 - **🗣️ Parole** — prime parole divise in categorie semplici: Famiglia, Animali, Cibo, Oggetti.
-- **🎮 Gioco "Ascolta e trova"** — in ogni sezione: la voce chiede un elemento e il bambino lo tocca tra 2 (o 3) scelte grandi. Si vincono 5 stelle e si festeggia. Nessun tempo limite, nessuna penalità.
+- **🎮 Gioco "Ascolta e trova"** — in ogni sezione: la voce chiede un elemento e il bambino lo tocca tra 2 (o 3) scelte grandi (per le lettere la voce pronuncia solo la lettera). Si vincono 5 stelle e si festeggia. Nessun tempo limite, nessuna penalità.
+- **🧩 Gioco "Completa la parola"** — nella sezione Lettere: una parola con una lettera nascosta, si ascolta la parola e si sceglie la lettera mancante.
+- **🦊 Gino, la mascotte** — salta fuori e festeggia con i coriandoli a ogni risposta giusta.
 
 ## Progettata per bambini con deficit cognitivo
 

@@ -66,6 +66,64 @@
     return impostazioni.maiuscole ? testo.toUpperCase() : testo.toLowerCase();
   }
 
+  /* ---------- Gino, la mascotte che festeggia ---------- */
+
+  function mascotte(pose = 'felice', size = 150) {
+    const braccia = pose === 'felice'
+      // braccia in alto con le zampette: evviva!
+      ? `<ellipse cx="28" cy="105" rx="12" ry="30" fill="#f5a54a" transform="rotate(42 28 105)"/>
+         <ellipse cx="172" cy="105" rx="12" ry="30" fill="#f5a54a" transform="rotate(-42 172 105)"/>
+         <circle cx="12" cy="86" r="11" fill="#f5a54a"/>
+         <circle cx="188" cy="86" r="11" fill="#f5a54a"/>`
+      // braccia lungo il corpo
+      : `<ellipse cx="34" cy="132" rx="12" ry="26" fill="#f5a54a" transform="rotate(-25 34 132)"/>
+         <ellipse cx="166" cy="132" rx="12" ry="26" fill="#f5a54a" transform="rotate(25 166 132)"/>`;
+    const bocca = pose === 'felice'
+      ? `<path d="M 78 128 Q 100 152 122 128 Z" fill="#8c4a2f"/>
+         <path d="M 86 128 Q 100 140 114 128 Z" fill="#ff9d9d"/>`
+      : `<path d="M 82 130 Q 100 142 118 130" stroke="#8c4a2f" stroke-width="6" fill="none" stroke-linecap="round"/>`;
+    return `
+      <svg viewBox="0 0 200 200" width="${size}" height="${size}" aria-hidden="true">
+        <ellipse cx="58" cy="42" rx="22" ry="32" fill="#f5a54a" transform="rotate(-18 58 42)"/>
+        <ellipse cx="142" cy="42" rx="22" ry="32" fill="#f5a54a" transform="rotate(18 142 42)"/>
+        <ellipse cx="58" cy="46" rx="11" ry="18" fill="#ffd9a8" transform="rotate(-18 58 46)"/>
+        <ellipse cx="142" cy="46" rx="11" ry="18" fill="#ffd9a8" transform="rotate(18 142 46)"/>
+        ${braccia}
+        <circle cx="100" cy="112" r="70" fill="#f5a54a"/>
+        <ellipse cx="100" cy="140" rx="46" ry="34" fill="#ffe9cc"/>
+        <circle cx="76" cy="94" r="15" fill="#fff"/>
+        <circle cx="124" cy="94" r="15" fill="#fff"/>
+        <circle cx="79" cy="97" r="7.5" fill="#3a3330"/>
+        <circle cx="121" cy="97" r="7.5" fill="#3a3330"/>
+        <circle cx="82" cy="94" r="2.5" fill="#fff"/>
+        <circle cx="124" cy="94" r="2.5" fill="#fff"/>
+        <circle cx="58" cy="118" r="10" fill="#ff9d9d" opacity="0.75"/>
+        <circle cx="142" cy="118" r="10" fill="#ff9d9d" opacity="0.75"/>
+        <ellipse cx="100" cy="114" rx="9" ry="7" fill="#8c4a2f"/>
+        ${bocca}
+      </svg>`;
+  }
+
+  /* Gino salta fuori dal bordo dello schermo con i coriandoli
+     ogni volta che la risposta è giusta (poi sparisce da solo). */
+  function festeggiaMascotte() {
+    const vecchio = document.getElementById('mascotte-pop');
+    if (vecchio) vecchio.remove();
+    const div = document.createElement('div');
+    div.id = 'mascotte-pop';
+    let coriandoli = '';
+    const simboli = ['🎉', '⭐', '✨', '🎊', '💛'];
+    for (let i = 0; i < 10; i++) {
+      const sinistra = 8 + Math.random() * 84;
+      const ritardo = Math.random() * 0.35;
+      const durata = 0.9 + Math.random() * 0.6;
+      coriandoli += `<span class="coriandolo" style="left:${sinistra}%;animation-delay:${ritardo}s;animation-duration:${durata}s">${casuale(simboli)}</span>`;
+    }
+    div.innerHTML = `${coriandoli}<div class="mascotte-salto">${mascotte('felice', 160)}</div>`;
+    document.body.appendChild(div);
+    setTimeout(() => div.remove(), 1600);
+  }
+
   /* ---------- struttura comune delle schermate ---------- */
 
   function render(html) {
@@ -101,7 +159,7 @@
     render(`
       ${barra('', { home: true })}
       <div class="home-testata">
-        <div class="logo">🌈</div>
+        <div class="logo mascotte-dondola">${mascotte('normale', 130)}</div>
         <h1>Impara con Me</h1>
       </div>
       <div class="menu-moduli">
@@ -169,8 +227,12 @@
         <div class="griglia">${carte}</div>
       </div>
       <button class="btn-modulo viola" id="vai-gioco" style="margin-bottom:16px">
-        <span class="emoji">🎮</span> Gioca
+        <span class="emoji">🎮</span> Trova
       </button>
+      ${idModulo === 'lettere' ? `
+      <button class="btn-modulo viola" id="vai-gioco-parola" style="margin-bottom:16px">
+        <span class="emoji">🧩</span> Completa la parola
+      </button>` : ''}
     `);
 
     collegaCasa();
@@ -182,6 +244,8 @@
     document.getElementById('vai-gioco').addEventListener('click', () => {
       vaiGioco(idModulo, modulo.items, () => vaiModulo(idModulo));
     });
+    const btnParola = document.getElementById('vai-gioco-parola');
+    if (btnParola) btnParola.addEventListener('click', () => vaiGiocoParola());
   }
 
   /* ---------- PAROLE: prima le categorie, poi le parole ---------- */
@@ -291,7 +355,7 @@
 
   function vaiGioco(idModulo, pool, indietro, stelle = 0) {
     if (stelle >= STELLE_PER_VINCERE) {
-      vaiFesta(idModulo, pool, indietro);
+      vaiFesta(() => vaiGioco(idModulo, pool, indietro, 0));
       return;
     }
 
@@ -303,9 +367,10 @@
     }
     const scelte = [bersaglio, ...distrattori].sort(() => Math.random() - 0.5);
 
+    // per le lettere si pronuncia SOLO la lettera, senza frasi intorno
     const domanda =
       idModulo === 'numeri' ? `Trova il numero ${bersaglio.say}` :
-      idModulo === 'lettere' ? `Trova la lettera ${bersaglio.say}` :
+      idModulo === 'lettere' ? bersaglio.say :
       `Trova: ${bersaglio.say}`;
 
     const carte = scelte.map(s => {
@@ -343,8 +408,9 @@
         if (carta.dataset.id === bersaglio.id) {
           risolto = true;
           carta.classList.add('giusta');
+          festeggiaMascotte();
           parla(casuale(LODI), { rate: 1 });
-          setTimeout(() => vaiGioco(idModulo, pool, indietro, stelle + 1), 1400);
+          setTimeout(() => vaiGioco(idModulo, pool, indietro, stelle + 1), 1600);
         } else {
           carta.classList.add('sbagliata');
           carta.disabled = true;
@@ -356,11 +422,12 @@
     });
   }
 
-  function vaiFesta(idModulo, pool, indietro) {
+  function vaiFesta(riparti) {
     render(`
       ${barra('')}
       <div class="festa">
         <div class="coriandoli">🎉⭐🎉</div>
+        <div class="mascotte-dondola">${mascotte('felice', 190)}</div>
         <h2>Bravissimo!</h2>
         <div style="font-size:30px">Hai vinto ${STELLE_PER_VINCERE} stelle!</div>
         <button class="btn-grande" id="btn-ancora">🎮 Gioca ancora</button>
@@ -370,8 +437,93 @@
 
     collegaCasa();
     parla('Bravissimo! Hai vinto cinque stelle! Evviva!', { rate: 0.95 });
-    document.getElementById('btn-ancora').addEventListener('click', () => vaiGioco(idModulo, pool, indietro, 0));
+    document.getElementById('btn-ancora').addEventListener('click', riparti);
     document.getElementById('btn-fine').addEventListener('click', () => vaiHome());
+  }
+
+  /* ---------- GIOCO "COMPLETA LA PAROLA" ----------
+     Una parola con una lettera nascosta: si ascolta la parola
+     e si sceglie la lettera che manca. */
+
+  function tutteLeParole() {
+    return DATA.parole.categorie.flatMap(cat => cat.items);
+  }
+
+  function vaiGiocoParola(stelle = 0) {
+    if (stelle >= STELLE_PER_VINCERE) {
+      vaiFesta(() => vaiGiocoParola(0));
+      return;
+    }
+
+    const parola = casuale(tutteLeParole());
+    const lettere = parola.glyph.split('');
+    // si nasconde solo una lettera "semplice" (niente accentate)
+    const indiciValidi = lettere
+      .map((l, i) => ({ l: l.toLowerCase(), i }))
+      .filter(x => 'abcdefghilmnopqrstuvz'.includes(x.l))
+      .map(x => x.i);
+    const buco = casuale(indiciValidi);
+    const letteraGiusta = lettere[buco].toLowerCase();
+
+    const alfabeto = DATA.lettere.items.map(x => x.glyph.toLowerCase());
+    const distrattori = [];
+    while (distrattori.length < impostazioni.numScelte - 1) {
+      const d = casuale(alfabeto);
+      if (d !== letteraGiusta && !distrattori.includes(d)) distrattori.push(d);
+    }
+    const scelte = [letteraGiusta, ...distrattori].sort(() => Math.random() - 0.5);
+
+    const tessere = lettere.map((l, i) =>
+      i === buco
+        ? `<span class="tessera buco" id="tessera-buco">?</span>`
+        : `<span class="tessera">${mostraTesto(l)}</span>`
+    ).join('');
+
+    const carte = scelte.map(l =>
+      `<button class="scelta" data-lettera="${l}">${mostraTesto(l)}</button>`
+    ).join('');
+
+    const fileStelle =
+      '⭐'.repeat(stelle) +
+      `<span class="vuota">${'⭐'.repeat(STELLE_PER_VINCERE - stelle)}</span>`;
+
+    render(`
+      ${barra('🧩 Completa')}
+      <div class="stelle" aria-label="${stelle} stelle su ${STELLE_PER_VINCERE}">${fileStelle}</div>
+      <div class="parola-zona">
+        <div class="parola-figura">${parola.emoji}</div>
+        <div class="parola-tessere">${tessere}</div>
+        <button class="btn-ripeti" id="btn-domanda">🔊 Ascolta</button>
+      </div>
+      <div class="gioco-scelte ${impostazioni.numScelte === 3 ? 'tre' : ''}">${carte}</div>
+      <div style="height:16px"></div>
+    `);
+
+    collegaCasa();
+    parla(parola.say);
+    document.getElementById('btn-domanda').addEventListener('click', () => parla(parola.say));
+
+    let risolto = false;
+    app.querySelectorAll('.scelta').forEach(carta => {
+      carta.addEventListener('click', () => {
+        if (risolto) return;
+        if (carta.dataset.lettera === letteraGiusta) {
+          risolto = true;
+          carta.classList.add('giusta');
+          const tessera = document.getElementById('tessera-buco');
+          tessera.textContent = mostraTesto(letteraGiusta);
+          tessera.classList.add('riempita');
+          festeggiaMascotte();
+          parla(`${casuale(LODI)} ${parola.say}!`, { rate: 1 });
+          setTimeout(() => vaiGiocoParola(stelle + 1), 1900);
+        } else {
+          carta.classList.add('sbagliata');
+          carta.disabled = true;
+          parla(casuale(INCORAGGIAMENTI), { rate: 1 });
+          setTimeout(() => { if (!risolto) parla(parola.say); }, 1800);
+        }
+      });
+    });
   }
 
   /* ---------- AREA GENITORI ---------- */
