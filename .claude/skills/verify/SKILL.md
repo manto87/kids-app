@@ -69,6 +69,15 @@ npx http-server /path/al/repo -p 8321 -s     # oppure python3 -m http.server
     `profiloAttivo().statistiche` (per attività e per elemento) → `localStorage.profili`.
     L'area genitori mostra Progressi del bambino attivo (`.riga-stat.totale`) e
     `#btn-azzera` (reset solo del bambino attivo).
+11. Difficoltà adattiva (profilo `adattiva`, default ON; costanti in `ADATTIVA`):
+    livello 1..3 per attività in `profilo.livelli`, finestra recente in `profilo.recenti`.
+    Sale dopo ≥8 risposte con acc ≥0.85, scende dopo ≥6 con acc ≤0.5 (isteresi: la
+    finestra si azzera al cambio). Livello→scelte: 1→2, 2→3, 3→3; a L3 distrattori
+    "simili" (`SIMILI_NUMERI`/`SIMILI_LETTERE`). Selezione bilanciata: `scegliBersaglio`
+    pesa sui punti deboli (padronanza di Laplace). Interruttore `[data-opzione="adattiva"]`;
+    quando ON il controllo `[data-opzione="numScelte"]` è nascosto. NB nei test: il round
+    successivo si renderizza dopo ~1600ms (`dopo()`), quindi attendere prima di leggere
+    le scelte. Test dedicato: `scratchpad/verify-adattiva.js`.
 
 ## Attenzioni
 

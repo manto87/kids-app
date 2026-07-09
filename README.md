@@ -18,7 +18,8 @@ schermata home del telefono o del tablet come una vera app e funziona anche
 - **✍️ Scrivi (dettato)** — la voce detta un numero o una lettera e il bambino la scrive col dito sulla lavagna. Se non riesce, aiuti progressivi: compare la traccia grigia da ricalcare (poi più scura) e il controllo diventa via via più generoso. Non conta dove e quanto grande si scrive: conta la forma.
 - **👦👧 Più bambini** — ogni bambino ha il suo profilo (nome, genere, difficoltà) e i **suoi** progressi. Dall'area genitori si sceglie chi gioca, si aggiunge un nuovo bambino o si modifica/elimina un profilo. I profili restano salvati sul dispositivo.
 - **👋 Nome e genere** — inseriti al primo avvio; i complimenti sono personalizzati e corretti al maschile/femminile ("Brava Sofia!", "Bravissimo Marco!").
-- **📊 Progressi per bambino** — l'app registra risposte giuste e sbagliate per ogni attività, separatamente per ciascun bambino; i genitori li vedono nell'area riservata (con azzeramento). È la base per la futura difficoltà adattiva.
+- **📊 Progressi per bambino** — l'app registra risposte giuste e sbagliate per ogni attività, separatamente per ciascun bambino; i genitori li vedono nell'area riservata (con azzeramento).
+- **📈 Difficoltà adattiva** — attiva di default (spegnibile dal genitore): ogni attività ha un livello 1→3 che sale dove il bambino è costantemente bravo e riscende se fatica. Ai livelli alti aumentano le scelte (2→3) e compaiono distrattori insidiosi (6 vs 9, b vs d). La scelta di cosa proporre è bilanciata: allena più spesso i punti deboli.
 
 ## Progettata per bambini con deficit cognitivo
 
@@ -29,9 +30,10 @@ schermata home del telefono o del tablet come una vera app e funziona anche
 - **Animazioni delicate**, rispettano `prefers-reduced-motion`.
 - **Area genitori** protetta (si apre tenendo premuto ⚙️ per 2 secondi) per adattare l'app al bambino:
   - scelta del bambino attivo, aggiunta/modifica/eliminazione dei profili
-  - numero di scelte nel gioco e scrittura MAIUSCOLO/minuscolo (per bambino)
+  - difficoltà adattiva on/off; in manuale, numero di scelte nel gioco (per bambino)
+  - scrittura MAIUSCOLO/minuscolo (per bambino)
   - velocità della voce, voce e suoni di festa (per il dispositivo)
-  - progressi per bambino (giusti/sbagliati per attività) con azzeramento
+  - progressi per bambino con livello per attività e azzeramento
 
 ## Come provarla
 

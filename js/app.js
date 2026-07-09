@@ -21,9 +21,18 @@
     id: uid(),
     nome: nome || '',
     genere: genere || null,
-    numScelte: 2,        // scelte nel gioco: 2 = più facile
+    numScelte: 2,        // scelte nel gioco (usato solo se adattiva è spenta)
     maiuscole: true,     // lettere/parole in MAIUSCOLO
+    adattiva: true,      // difficoltà che sale/scende da sola
+    livelli: {},         // livello (1..3) per attività
+    recenti: {},         // finestra recente di esiti (1/0) per attività
     statistiche: {},     // giusti/sbagliati per attività e per elemento
+  });
+
+  // aggiunge i campi mancanti a profili vecchi (migrazione morbida)
+  const completaProfilo = (p) => ({
+    numScelte: 2, maiuscole: true, adattiva: true,
+    livelli: {}, recenti: {}, statistiche: {}, ...p,
   });
 
   // profilo di scorta, usato solo prima che ne esista uno vero (onboarding)
@@ -72,7 +81,7 @@
     try {
       const raw = JSON.parse(localStorage.getItem('profili') || 'null');
       if (raw && Array.isArray(raw.profili) && raw.profili.length) {
-        profili = raw.profili;
+        profili = raw.profili.map(completaProfilo);
         attivoId = raw.attivo && profili.some(p => p.id === raw.attivo) ? raw.attivo : profili[0].id;
         return;
       }
@@ -110,7 +119,100 @@
       if (!a.items[itemId]) a.items[itemId] = { giusti: 0, sbagliati: 0 };
       if (giusto) a.items[itemId].giusti++; else a.items[itemId].sbagliati++;
     }
+    if (prof.adattiva) aggiornaLivello(prof, attivita, giusto);
     salvaProfili();
+  }
+
+  /* ---------- difficoltà adattiva ----------
+     Un livello (1..3) per attività, per bambino. Sale dove il bambino è
+     costantemente bravo (graduale, con isteresi), scende se fatica. La
+     selezione è "bilanciata": propone più spesso gli elementi deboli e, ai
+     livelli alti, aggiunge distrattori insidiosi. Tutte le manopole qui: */
+  const ADATTIVA = {
+    FINESTRA: 12,        // quante risposte recenti si guardano
+    MIN_PROMO: 8,        // campioni minimi prima di poter salire
+    MIN_DEMO: 6,         // campioni minimi prima di poter scendere
+    SOGLIA_PROMO: 0.85,  // accuratezza recente per salire
+    SOGLIA_DEMO: 0.50,   // accuratezza recente per scendere
+    LIVELLO_MAX: 3,
+    SCELTE: { 1: 2, 2: 3, 3: 3 },  // scelte nel gioco per livello
+    SIMILI_DA: 3,        // dal livello 3 i distrattori diventano insidiosi
+  };
+
+  function livelloAttivita(attivita) {
+    const l = P().livelli[attivita];
+    return l && l >= 1 ? Math.min(l, ADATTIVA.LIVELLO_MAX) : 1;
+  }
+
+  // scelte effettive: automatiche se adattiva, altrimenti quelle del genitore
+  function numScelteEffettive(attivita) {
+    return P().adattiva ? ADATTIVA.SCELTE[livelloAttivita(attivita)] : P().numScelte;
+  }
+
+  function distrattoriSimili(attivita) {
+    return P().adattiva && livelloAttivita(attivita) >= ADATTIVA.SIMILI_DA;
+  }
+
+  // aggiorna la finestra recente e, se serve, promuove/retrocede il livello
+  function aggiornaLivello(prof, attivita, giusto) {
+    const r = prof.recenti[attivita] || (prof.recenti[attivita] = []);
+    r.push(giusto ? 1 : 0);
+    while (r.length > ADATTIVA.FINESTRA) r.shift();
+    const somma = r.reduce((s, x) => s + x, 0);
+    const acc = r.length ? somma / r.length : 0;
+    const liv = prof.livelli[attivita] || 1;
+    if (r.length >= ADATTIVA.MIN_PROMO && acc >= ADATTIVA.SOGLIA_PROMO && liv < ADATTIVA.LIVELLO_MAX) {
+      prof.livelli[attivita] = liv + 1;
+      prof.recenti[attivita] = [];   // si riparte per guadagnare il livello dopo
+    } else if (r.length >= ADATTIVA.MIN_DEMO && acc <= ADATTIVA.SOGLIA_DEMO && liv > 1) {
+      prof.livelli[attivita] = liv - 1;
+      prof.recenti[attivita] = [];
+    }
+  }
+
+  // padronanza di un elemento: 0.5 senza dati, → 1 se sempre giusto (Laplace)
+  function padronanza(attivita, itemId) {
+    const it = ((P().statistiche[attivita] || {}).items || {})[itemId];
+    const g = it ? it.giusti : 0;
+    const s = it ? it.sbagliati : 0;
+    return (g + 1) / (g + s + 2);
+  }
+
+  // scelta pesata sui punti deboli (bilanciata); evita di ripetere l'ultimo
+  let ultimoBersaglio = null;
+  function scegliBersaglio(pool, attivita) {
+    if (!P().adattiva) return casuale(pool);
+    const candidati = pool.length > 1 ? pool.filter(x => x.id !== ultimoBersaglio) : pool;
+    const pesi = candidati.map(x => 1 - padronanza(attivita, x.id) + 0.15);
+    const totale = pesi.reduce((s, w) => s + w, 0);
+    let soglia = Math.random() * totale;
+    let scelto = candidati[candidati.length - 1];
+    for (let i = 0; i < candidati.length; i++) {
+      soglia -= pesi[i];
+      if (soglia <= 0) { scelto = candidati[i]; break; }
+    }
+    ultimoBersaglio = scelto.id;
+    return scelto;
+  }
+
+  /* Distrattori (item con id) per il gioco Trova: ai livelli alti si
+     preferiscono quelli simili al bersaglio, poi si completa a caso. */
+  function scegliDistrattori(bersaglio, pool, n, { simili, similiDi, glifoDi }) {
+    const altri = pool.filter(x => x.id !== bersaglio.id);
+    const scelti = [];
+    const prendiDa = (lista) => {
+      const disponibili = lista.filter(x => !scelti.some(s => s.id === x.id));
+      while (scelti.length < n && disponibili.length) {
+        const i = Math.floor(Math.random() * disponibili.length);
+        scelti.push(disponibili.splice(i, 1)[0]);
+      }
+    };
+    if (simili) {
+      const set = similiDi(bersaglio) || [];
+      prendiDa(altri.filter(x => set.includes(glifoDi(x))));
+    }
+    prendiDa(altri);   // riempi a caso se i simili non bastano
+    return scelti;
   }
 
   /* ---------- sintesi vocale (voce italiana, viva e calorosa) ---------- */
@@ -600,12 +702,17 @@
       return;
     }
 
-    const bersaglio = casuale(pool);
-    const distrattori = [];
-    while (distrattori.length < P().numScelte - 1) {
-      const d = casuale(pool);
-      if (d.id !== bersaglio.id && !distrattori.some(x => x.id === d.id)) distrattori.push(d);
-    }
+    const attivita = 'trova-' + idModulo;
+    const bersaglio = scegliBersaglio(pool, attivita);
+    // distrattori insidiosi solo per numeri/lettere (le parole del pool sono già
+    // tutte della stessa categoria, quindi "simili" per natura)
+    const mappaSimili = idModulo === 'numeri' ? SIMILI_NUMERI : idModulo === 'lettere' ? SIMILI_LETTERE : null;
+    const glifoDi = (x) => idModulo === 'lettere' ? x.glyph.toLowerCase() : x.glyph;
+    const distrattori = scegliDistrattori(bersaglio, pool, numScelteEffettive(attivita) - 1, {
+      simili: distrattoriSimili(attivita) && !!mappaSimili,
+      similiDi: (b) => mappaSimili ? (mappaSimili[glifoDi(b)] || []) : [],
+      glifoDi,
+    });
     const scelte = [bersaglio, ...distrattori].sort(() => Math.random() - 0.5);
 
     // per le lettere si pronuncia SOLO la lettera, senza frasi intorno
@@ -639,7 +746,7 @@
       <div class="gioco-domanda">
         <button class="btn-ripeti" id="btn-domanda">🔊 Ascolta</button>
       </div>
-      <div class="gioco-scelte ${P().numScelte === 3 ? 'tre' : ''}">${carte}</div>
+      <div class="gioco-scelte ${scelte.length >= 3 ? 'tre' : ''}">${carte}</div>
       <div style="height:16px"></div>
     `);
 
@@ -727,12 +834,28 @@
       .map((l, i) => ({ l: l.toLowerCase(), i }))
       .filter(x => 'abcdefghilmnopqrstuvz'.includes(x.l))
       .map(x => x.i);
-    const buco = casuale(indiciValidi);
+    // adattiva: si buca la lettera in cui il bambino è più debole
+    let buco;
+    if (P().adattiva) {
+      buco = indiciValidi.reduce((peggio, i) =>
+        padronanza('completa', lettere[i].toLowerCase()) < padronanza('completa', lettere[peggio].toLowerCase()) ? i : peggio,
+        indiciValidi[0]);
+    } else {
+      buco = casuale(indiciValidi);
+    }
     const letteraGiusta = lettere[buco].toLowerCase();
 
     const alfabeto = DATA.lettere.items.map(x => x.glyph.toLowerCase());
+    const simili = distrattoriSimili('completa');
     const distrattori = [];
-    while (distrattori.length < P().numScelte - 1) {
+    // ai livelli alti si preferiscono lettere facili da confondere
+    if (simili) {
+      const set = (SIMILI_LETTERE[letteraGiusta] || []).filter(l => l !== letteraGiusta);
+      for (const l of set.sort(() => Math.random() - 0.5)) {
+        if (distrattori.length < numScelteEffettive('completa') - 1 && !distrattori.includes(l)) distrattori.push(l);
+      }
+    }
+    while (distrattori.length < numScelteEffettive('completa') - 1) {
       const d = casuale(alfabeto);
       if (d !== letteraGiusta && !distrattori.includes(d)) distrattori.push(d);
     }
@@ -760,7 +883,7 @@
         <div class="parola-tessere">${tessere}</div>
         <button class="btn-ripeti" id="btn-domanda">🔊 Ascolta</button>
       </div>
-      <div class="gioco-scelte ${P().numScelte === 3 ? 'tre' : ''}">${carte}</div>
+      <div class="gioco-scelte ${scelte.length >= 3 ? 'tre' : ''}">${carte}</div>
       <div style="height:16px"></div>
     `);
 
@@ -943,7 +1066,7 @@
       return;
     }
 
-    const item = casuale(DATA[idModulo].items);
+    const item = scegliBersaglio(DATA[idModulo].items, 'scrivi-' + idModulo);
     const glifo = idModulo === 'lettere' ? mostraTesto(item.glyph) : item.glyph;
     // si pronuncia SOLO la lettera o il numero, senza frasi intorno
     const domanda = item.say;
@@ -1109,7 +1232,11 @@
 
         ${bloccoProgressi()}
 
-        ${opzione('Scelte nel gioco (meno scelte = più facile)', 'numScelte', [
+        ${opzione('Difficoltà adattiva (si regola da sola)', 'adattiva', [
+          { testo: '✨ Attiva', valore: 'true', attivo: P().adattiva },
+          { testo: '✋ Manuale', valore: 'false', attivo: !P().adattiva },
+        ])}
+        ${P().adattiva ? '' : opzione('Scelte nel gioco (meno scelte = più facile)', 'numScelte', [
           { testo: '2 scelte', valore: '2', attivo: P().numScelte === 2 },
           { testo: '3 scelte', valore: '3', attivo: P().numScelte === 3 },
         ])}
@@ -1140,6 +1267,7 @@
         const nome = btn.dataset.opzione;
         const valore = btn.dataset.valore;
         if (nome === 'numScelte') { P().numScelte = Number(valore); salvaProfili(); }
+        else if (nome === 'adattiva') { P().adattiva = valore === 'true'; salvaProfili(); }
         else if (nome === 'maiuscole') { P().maiuscole = valore === 'true'; salvaProfili(); }
         else if (nome === 'velocita') { dispositivo.velocita = Number(valore); salvaDispositivo(); }
         else if (nome === 'audio') { dispositivo.audio = valore === 'true'; salvaDispositivo(); }
@@ -1192,16 +1320,19 @@
         </div>`;
     }
 
+    const adattiva = P().adattiva;
     let totG = 0, totS = 0;
     const righe = chiavi.map(k => {
       const s = stat[k];
       totG += s.giusti; totS += s.sbagliati;
       const tot = s.giusti + s.sbagliati;
       const perc = tot ? Math.round(s.giusti / tot * 100) : 0;
+      const liv = (P().livelli[k] || 1);
+      const badge = adattiva ? `<span class="livello">Liv. ${liv}/${ADATTIVA.LIVELLO_MAX}</span> ` : '';
       return `
         <div class="riga-stat">
           <span class="nome-stat">${ETICHETTE_ATTIVITA[k]}</span>
-          <span class="val-stat"><span class="ok">${s.giusti} ✓</span> · <span class="ko">${s.sbagliati} ✗</span> · ${perc}%</span>
+          <span class="val-stat">${badge}<span class="ok">${s.giusti} ✓</span> · <span class="ko">${s.sbagliati} ✗</span> · ${perc}%</span>
         </div>`;
     }).join('');
 
@@ -1216,7 +1347,9 @@
           <span class="val-stat"><span class="ok">${totG} ✓</span> · <span class="ko">${totS} ✗</span> · ${percTot}%</span>
         </div>
         ${righe}
-        <p class="nota">Le percentuali più alte indicano dove il bambino è più sicuro: in futuro l'app renderà quelle attività un po' più impegnative.</p>
+        <p class="nota">${adattiva
+          ? 'Con la difficoltà adattiva il livello sale dove il bambino è costantemente bravo (fino a ' + ADATTIVA.LIVELLO_MAX + ') e riscende se fatica.'
+          : 'Le percentuali più alte indicano dove il bambino è più sicuro.'}</p>
         <div class="valori"><button class="btn-valore" id="btn-azzera">🗑️ Azzera i progressi</button></div>
       </div>`;
   }

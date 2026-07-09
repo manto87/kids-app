@@ -437,6 +437,15 @@ button {
 .riga-stat .val-stat { white-space: nowrap; }
 .riga-stat .ok { color: var(--verde); font-weight: bold; }
 .riga-stat .ko { color: var(--rosso-soft); font-weight: bold; }
+.riga-stat .livello {
+  display: inline-block;
+  background: var(--viola-chiaro);
+  color: var(--viola);
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 15px;
+  font-weight: bold;
+}
 
 /* ---------- onboarding (nome e genere) ---------- */
 
