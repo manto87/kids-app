@@ -263,17 +263,18 @@
 
     render(`
       ${barra(`${modulo.emoji} ${modulo.titolo}`)}
-      <div class="stelle"></div>
+      <div class="giochi-testa">
+        <button class="btn-modulo viola" id="vai-gioco">
+          <span class="emoji">🎮</span> Trova
+        </button>
+        ${idModulo === 'lettere' ? `
+        <button class="btn-modulo viola" id="vai-gioco-parola">
+          <span class="emoji">🧩</span> Completa la parola
+        </button>` : ''}
+      </div>
       <div class="modulo-${modulo.colore}">
         <div class="griglia">${carte}</div>
       </div>
-      <button class="btn-modulo viola" id="vai-gioco" style="margin-bottom:16px">
-        <span class="emoji">🎮</span> Trova
-      </button>
-      ${idModulo === 'lettere' ? `
-      <button class="btn-modulo viola" id="vai-gioco-parola" style="margin-bottom:16px">
-        <span class="emoji">🧩</span> Completa la parola
-      </button>` : ''}
     `);
 
     collegaCasa();
@@ -321,13 +322,14 @@
 
     render(`
       ${barra(`${cat.emoji} ${cat.titolo}`)}
-      <div class="stelle"></div>
+      <div class="giochi-testa">
+        <button class="btn-modulo viola" id="vai-gioco">
+          <span class="emoji">🎮</span> Gioca
+        </button>
+      </div>
       <div class="modulo-arancio">
         <div class="griglia">${carte}</div>
       </div>
-      <button class="btn-modulo viola" id="vai-gioco" style="margin-bottom:16px">
-        <span class="emoji">🎮</span> Gioca
-      </button>
     `);
 
     collegaCasa();
@@ -421,7 +423,12 @@
       if (idModulo === 'lettere') {
         return `<button class="scelta" data-id="${s.id}">${mostraTesto(s.glyph)}</button>`;
       }
-      return `<button class="scelta" data-id="${s.id}">${s.emoji}<span class="mini">${mostraTesto(s.glyph)}</span></button>`;
+      // parole: prima solo la parola scritta; la figura è nascosta
+      // e compare come aiuto dopo due tentativi sbagliati
+      return `<button class="scelta scelta-parola" data-id="${s.id}">
+                <span class="figura" hidden>${s.emoji}</span>
+                <span class="parola-scritta">${mostraTesto(s.glyph)}</span>
+              </button>`;
     }).join('');
 
     const fileStelle =
@@ -443,6 +450,7 @@
     document.getElementById('btn-domanda').addEventListener('click', () => parla(domanda));
 
     let risolto = false;
+    let errori = 0;
     app.querySelectorAll('.scelta').forEach(carta => {
       carta.addEventListener('click', () => {
         if (risolto) return;
@@ -452,13 +460,27 @@
           festeggiaMascotte();
           parla(casuale(LODI), { rate: 1 });
           dopo(1600, () => vaiGioco(idModulo, pool, indietro, stelle + 1));
+          return;
+        }
+        errori++;
+        if (idModulo === 'parole') {
+          // nelle parole la carta sbagliata non si spegne: si riprova,
+          // e al terzo tentativo compaiono le figure come aiuto
+          carta.classList.add('scossa');
+          dopo(500, () => carta.classList.remove('scossa'));
+          if (errori >= 2) {
+            app.querySelectorAll('.scelta .figura').forEach(f => { f.hidden = false; });
+            parla(`${casuale(INCORAGGIAMENTI)} Guarda i disegni!`, { rate: 1 });
+          } else {
+            parla(casuale(INCORAGGIAMENTI), { rate: 1 });
+          }
         } else {
           carta.classList.add('sbagliata');
           carta.disabled = true;
           parla(casuale(INCORAGGIAMENTI), { rate: 1 });
-          // ripete la domanda solo se nel frattempo non si è già risposto bene
-          dopo(1800, () => { if (!risolto) parla(domanda); });
         }
+        // ripete la domanda solo se nel frattempo non si è già risposto bene
+        dopo(1800, () => { if (!risolto) parla(domanda); });
       });
     });
   }
@@ -685,15 +707,30 @@
     for (const p of sagoma) if (cerca(grigliaInchiostro, p, TOLLERANZA_COPERTURA)) coperti++;
     const copertura = coperti / sagoma.length;
 
+    // invasione: quanta parte delle zone VUOTE dentro la cornice del glifo
+    // (i buchi della O, gli angoli liberi) è stata toccata dall'inchiostro.
+    // La scrittura vera non le tocca; righe e riempimenti sì.
+    const vuoti = [];
+    for (let y = boxS.y0; y <= boxS.y0 + boxS.h; y += 6) {
+      for (let x = boxS.x0; x <= boxS.x0 + boxS.w; x += 6) {
+        if (!cerca(grigliaSagoma, [x, y], 12)) vuoti.push([x, y]);
+      }
+    }
+    let vuotiToccati = 0;
+    for (const p of vuoti) if (cerca(grigliaInchiostro, p, 8)) vuotiToccati++;
+    const invasione = vuoti.length ? vuotiToccati / vuoti.length : 0;
+
     // tratto molto più lungo dello scheletro del glifo = scarabocchio
     const scheletro = (sagoma.length * 9) / 24;
     const eccesso = (lunghezza * scala) / Math.max(scheletro, 1);
 
     // soglie via via più generose ad ogni tentativo (mai frustrare),
-    // ma l'eccesso resta sempre un limite
-    const soglie = tentativi === 0 ? [0.80, 0.85] : tentativi === 1 ? [0.70, 0.75] : [0.60, 0.65];
-    const ok = precisione >= soglie[0] && copertura >= soglie[1] && eccesso <= 3.8;
-    return { ok, precisione, copertura, eccesso };
+    // ma l'eccesso resta sempre un limite: la scrittura vera è un tratto
+    // solo, poco più lungo dello scheletro; le righe che riempiono la
+    // lavagna lo superano sempre
+    const soglie = tentativi === 0 ? [0.80, 0.80] : tentativi === 1 ? [0.70, 0.70] : [0.65, 0.65];
+    const ok = precisione >= soglie[0] && copertura >= soglie[1] && eccesso <= 2.5 && invasione <= 0.35;
+    return { ok, precisione, copertura, eccesso, invasione };
   }
 
   function vaiDettato(idModulo, stelle = 0) {
@@ -798,6 +835,7 @@
     document.getElementById('btn-fatto').addEventListener('click', () => {
       if (risolto) return;
       const esito = valutaScrittura(tratti, glifo, tentativi);
+      window.__ultimoEsito = esito; // per diagnosi e test automatici
 
       if (esito.ok) {
         risolto = true;

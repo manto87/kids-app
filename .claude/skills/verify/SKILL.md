@@ -26,8 +26,11 @@ npx http-server /path/al/repo -p 8321 -s     # oppure python3 -m http.server
 1. Home → Numeri → carta → dettaglio (glifo, conteggio emoji, audio) → frecce avanti/indietro.
 2. Home → Lettere → carta A → dettaglio ("A a", "a. A come Ape").
 3. Home → Parole → categoria → parola → dettaglio.
-4. Gioco (`#vai-gioco`): il prompt vocale dice il bersaglio ("Trova il numero tre";
-   per le lettere pronuncia SOLO la lettera, es. "emme");
+4. Gioco (`#vai-gioco`, pulsante SOPRA la griglia): il prompt vocale dice il bersaglio
+   ("Trova il numero tre"; per le lettere pronuncia SOLO la lettera, es. "emme");
+   nelle PAROLE le scelte mostrano solo `.parola-scritta` (le `.figura` sono hidden),
+   le carte sbagliate NON si disabilitano (classe `.scossa` temporanea) e dopo
+   2 errori le figure diventano visibili;
    risposta sbagliata → carta `.sbagliata` disabilitata, nessuna penalità;
    risposta giusta → compare la mascotte `#mascotte-pop` (sparisce da sola dopo ~1,6 s);
    5 risposte giuste → schermata `.festa`. Attendere ~1,9 s tra i round (delay interno 1,6 s).
@@ -48,7 +51,9 @@ npx http-server /path/al/repo -p 8321 -s     # oppure python3 -m http.server
    posizione/scala, quindi non serve allineamento perfetto. La metrica è a distanze
    (precisione Tp=8px, copertura Tc=14px su glifo 190px, eccesso lunghezza ≤3,8×):
    scarabocchi, riempimenti e glifi dissimili falliscono; nei test sintetici
-   campionare i pixel a passo 9 (non più fitto, o l'eccesso supera il tetto).
+   tracciare la LINEA CENTRALE (centri delle corse per riga+colonna, dedupe 12px),
+   non l'area piena: l'eccesso (≤2,5×) e l'invasione delle zone vuote (≤0,35)
+   respingono i tracciati densi.
 9. Suono ta-da: spia `AudioContext.prototype.createOscillator` in addInitScript;
    una risposta giusta crea 3 oscillatori.
 
