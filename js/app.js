@@ -16,6 +16,7 @@
     maiuscole: true,     // lettere/parole in MAIUSCOLO (più leggibili all'inizio)
     velocita: 0.75,      // velocità della voce (lenta)
     audio: true,
+    suoni: true,         // suono di festa quando si fa giusto
   };
 
   let impostazioni = caricaImpostazioni();
@@ -60,6 +61,32 @@
 
   function casuale(lista) {
     return lista[Math.floor(Math.random() * lista.length)];
+  }
+
+  /* ---------- suono di festa (Web Audio, nessun file esterno) ---------- */
+
+  let contestoAudio = null;
+
+  function suonaTaDa() {
+    if (!impostazioni.suoni) return;
+    try {
+      contestoAudio = contestoAudio || new (window.AudioContext || window.webkitAudioContext)();
+      if (contestoAudio.state === 'suspended') contestoAudio.resume();
+      // tre note morbide (do-mi-sol): allegro ma non brusco
+      [523.25, 659.25, 783.99].forEach((frequenza, i) => {
+        const osc = contestoAudio.createOscillator();
+        const gain = contestoAudio.createGain();
+        osc.type = 'triangle';
+        osc.frequency.value = frequenza;
+        const t = contestoAudio.currentTime + i * 0.13;
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.22, t + 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+        osc.connect(gain).connect(contestoAudio.destination);
+        osc.start(t);
+        osc.stop(t + 0.6);
+      });
+    } catch {}
   }
 
   function mostraTesto(testo) {
@@ -107,6 +134,7 @@
   /* Gino salta fuori dal bordo dello schermo con i coriandoli
      ogni volta che la risposta è giusta (poi sparisce da solo). */
   function festeggiaMascotte() {
+    suonaTaDa();
     const vecchio = document.getElementById('mascotte-pop');
     if (vecchio) vecchio.remove();
     const div = document.createElement('div');
@@ -126,10 +154,21 @@
 
   /* ---------- struttura comune delle schermate ---------- */
 
+  let generazione = 0;
+
   function render(html) {
+    generazione++;
     app.innerHTML = html;
     app.scrollTop = 0;
     window.scrollTo(0, 0);
+  }
+
+  /* Timer legato alla schermata corrente: se nel frattempo si è
+     navigato altrove, non fa nulla (niente salti di schermata
+     o voci "fantasma" dei giochi precedenti). */
+  function dopo(ms, fn) {
+    const g = generazione;
+    setTimeout(() => { if (g === generazione) fn(); }, ms);
   }
 
   /* Barra superiore: casa a sinistra, titolo al centro,
@@ -166,12 +205,14 @@
         <button class="btn-modulo blu" id="vai-numeri"><span class="emoji">🔢</span> Numeri</button>
         <button class="btn-modulo verde" id="vai-lettere"><span class="emoji">🔤</span> Lettere</button>
         <button class="btn-modulo arancio" id="vai-parole"><span class="emoji">🗣️</span> Parole</button>
+        <button class="btn-modulo viola" id="vai-scrivi"><span class="emoji">✍️</span> Scrivi</button>
       </div>
     `);
 
     document.getElementById('vai-numeri').addEventListener('click', () => { parla('Numeri!'); vaiModulo('numeri'); });
     document.getElementById('vai-lettere').addEventListener('click', () => { parla('Lettere!'); vaiModulo('lettere'); });
     document.getElementById('vai-parole').addEventListener('click', () => { parla('Parole!'); vaiCategorie(); });
+    document.getElementById('vai-scrivi').addEventListener('click', () => { parla('Scrivi!'); vaiScrivi(); });
 
     collegaGenitori();
   }
@@ -410,13 +451,13 @@
           carta.classList.add('giusta');
           festeggiaMascotte();
           parla(casuale(LODI), { rate: 1 });
-          setTimeout(() => vaiGioco(idModulo, pool, indietro, stelle + 1), 1600);
+          dopo(1600, () => vaiGioco(idModulo, pool, indietro, stelle + 1));
         } else {
           carta.classList.add('sbagliata');
           carta.disabled = true;
           parla(casuale(INCORAGGIAMENTI), { rate: 1 });
           // ripete la domanda solo se nel frattempo non si è già risposto bene
-          setTimeout(() => { if (!risolto) parla(domanda); }, 1800);
+          dopo(1800, () => { if (!risolto) parla(domanda); });
         }
       });
     });
@@ -515,14 +556,259 @@
           tessera.classList.add('riempita');
           festeggiaMascotte();
           parla(`${casuale(LODI)} ${parola.say}!`, { rate: 1 });
-          setTimeout(() => vaiGiocoParola(stelle + 1), 1900);
+          dopo(1900, () => vaiGiocoParola(stelle + 1));
         } else {
           carta.classList.add('sbagliata');
           carta.disabled = true;
           parla(casuale(INCORAGGIAMENTI), { rate: 1 });
-          setTimeout(() => { if (!risolto) parla(parola.say); }, 1800);
+          dopo(1800, () => { if (!risolto) parla(parola.say); });
         }
       });
+    });
+  }
+
+  /* ---------- SCRIVI: dettato di lettere e numeri ----------
+     La voce detta, il bambino scrive col dito sulla lavagna.
+     Aiuti progressivi: se non riesce compare la traccia grigia
+     da ricalcare, e i controlli diventano via via più generosi. */
+
+  const FONTE_SCRITTURA = '"Trebuchet MS", "Segoe UI", Arial, sans-serif';
+
+  function vaiScrivi() {
+    render(`
+      ${barra('✍️ Scrivi')}
+      <div class="menu-moduli" style="justify-content:center">
+        <button class="btn-modulo blu" id="detta-numeri"><span class="emoji">🔢</span> Numeri</button>
+        <button class="btn-modulo verde" id="detta-lettere"><span class="emoji">🔤</span> Lettere</button>
+      </div>
+    `);
+    collegaCasa();
+    document.getElementById('detta-numeri').addEventListener('click', () => { parla('Numeri!'); vaiDettato('numeri'); });
+    document.getElementById('detta-lettere').addEventListener('click', () => { parla('Lettere!'); vaiDettato('lettere'); });
+  }
+
+  /* Confronta il disegno del bambino con la forma del glifo.
+     Il disegno viene prima riportato (spostato e scalato) sulla
+     sagoma, così non importa DOVE e QUANTO GRANDE ha scritto. */
+  function valutaScrittura(tratti, glifo, tentativi) {
+    const punti = tratti.flat();
+    if (punti.length < 12) return { ok: false, pochiPunti: true };
+
+    const W = 220, H = 280;
+    const font = `bold 190px ${FONTE_SCRITTURA}`;
+
+    const nuovaTela = () => {
+      const c = document.createElement('canvas');
+      c.width = W; c.height = H;
+      return c;
+    };
+    const disegnaGlifo = (ctx, dx = 0, dy = 0) => {
+      ctx.font = font;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(glifo, W / 2 + dx, H / 2 + dy);
+    };
+    const pixelAccesi = (canvas) => {
+      const dati = canvas.getContext('2d').getImageData(0, 0, W, H).data;
+      const accesi = [];
+      for (let y = 0; y < H; y += 2) {
+        for (let x = 0; x < W; x += 2) {
+          if (dati[(y * W + x) * 4 + 3] > 40) accesi.push([x, y]);
+        }
+      }
+      return accesi;
+    };
+    const bbox = (pts) => {
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (const [x, y] of pts) {
+        if (x < x0) x0 = x; if (y < y0) y0 = y;
+        if (x > x1) x1 = x; if (y > y1) y1 = y;
+      }
+      return { x0, y0, w: Math.max(x1 - x0, 4), h: Math.max(y1 - y0, 4) };
+    };
+
+    // sagoma del glifo (sottile) e sagoma "gonfiata" per essere tolleranti
+    const sagoma = nuovaTela();
+    disegnaGlifo(sagoma.getContext('2d'));
+    const puntiSagoma = pixelAccesi(sagoma);
+    const boxSagoma = bbox(puntiSagoma);
+
+    const sagomaLarga = nuovaTela();
+    const ctxLarga = sagomaLarga.getContext('2d');
+    for (let dx = -12; dx <= 12; dx += 12) {
+      for (let dy = -12; dy <= 12; dy += 12) disegnaGlifo(ctxLarga, dx, dy);
+    }
+
+    // riporta i tratti del bambino dentro la sagoma
+    const boxTratto = bbox(punti);
+    const scala = Math.min(boxSagoma.w / boxTratto.w, boxSagoma.h / boxTratto.h);
+    const trasforma = ([x, y]) => [
+      boxSagoma.x0 + boxSagoma.w / 2 + (x - boxTratto.x0 - boxTratto.w / 2) * scala,
+      boxSagoma.y0 + boxSagoma.h / 2 + (y - boxTratto.y0 - boxTratto.h / 2) * scala,
+    ];
+    const disegnaTratti = (ctx, spessore) => {
+      ctx.lineWidth = spessore;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      for (const tratto of tratti) {
+        if (!tratto.length) continue;
+        ctx.beginPath();
+        const [x0, y0] = trasforma(tratto[0]);
+        ctx.moveTo(x0, y0);
+        for (const p of tratto) { const [x, y] = trasforma(p); ctx.lineTo(x, y); }
+        ctx.stroke();
+      }
+    };
+
+    const inchiostro = nuovaTela();
+    disegnaTratti(inchiostro.getContext('2d'), 12);
+    const inchiostroLargo = nuovaTela();
+    disegnaTratti(inchiostroLargo.getContext('2d'), 46);
+
+    // precisione: quanta scrittura sta sopra la sagoma gonfiata
+    const datiLarga = sagomaLarga.getContext('2d').getImageData(0, 0, W, H).data;
+    const puntiInchiostro = pixelAccesi(inchiostro);
+    let dentro = 0;
+    for (const [x, y] of puntiInchiostro) {
+      if (datiLarga[(y * W + x) * 4 + 3] > 40) dentro++;
+    }
+    const precisione = puntiInchiostro.length ? dentro / puntiInchiostro.length : 0;
+
+    // copertura: quanta sagoma è stata ripassata dalla scrittura gonfiata
+    const datiInchiostroLargo = inchiostroLargo.getContext('2d').getImageData(0, 0, W, H).data;
+    let coperti = 0;
+    for (const [x, y] of puntiSagoma) {
+      if (datiInchiostroLargo[(y * W + x) * 4 + 3] > 40) coperti++;
+    }
+    const copertura = puntiSagoma.length ? coperti / puntiSagoma.length : 0;
+
+    // soglie via via più generose ad ogni tentativo (mai frustrare)
+    const soglia = tentativi === 0 ? 0.45 : tentativi === 1 ? 0.4 : 0.32;
+    return { ok: precisione >= soglia && copertura >= soglia, precisione, copertura };
+  }
+
+  function vaiDettato(idModulo, stelle = 0) {
+    if (stelle >= STELLE_PER_VINCERE) {
+      vaiFesta(() => vaiDettato(idModulo, 0));
+      return;
+    }
+
+    const item = casuale(DATA[idModulo].items);
+    const glifo = idModulo === 'lettere' ? mostraTesto(item.glyph) : item.glyph;
+    const domanda = `Scrivi: ${item.say}`;
+
+    const fileStelle =
+      '⭐'.repeat(stelle) +
+      `<span class="vuota">${'⭐'.repeat(STELLE_PER_VINCERE - stelle)}</span>`;
+
+    render(`
+      ${barra('✍️ Scrivi')}
+      <div class="stelle" aria-label="${stelle} stelle su ${STELLE_PER_VINCERE}">${fileStelle}</div>
+      <div class="gioco-domanda" style="margin-bottom:12px">
+        <button class="btn-ripeti" id="btn-domanda">🔊 Ascolta</button>
+      </div>
+      <div class="lavagna">
+        <div class="guida" id="guida" aria-hidden="true">${glifo}</div>
+        <canvas id="lavagna-canvas"></canvas>
+      </div>
+      <div class="dettato-bottoni">
+        <button class="btn-tondo" id="btn-cancella" aria-label="Cancella e riprova">🗑️</button>
+        <button class="btn-fatto" id="btn-fatto">✅ Fatto!</button>
+        <button class="btn-tondo" id="btn-aiuto" aria-label="Mostra la traccia da ricalcare">💡</button>
+      </div>
+    `);
+
+    collegaCasa();
+    parla(domanda);
+    document.getElementById('btn-domanda').addEventListener('click', () => parla(domanda));
+
+    /* --- lavagna: disegno col dito --- */
+    const canvas = document.getElementById('lavagna-canvas');
+    const ctx = canvas.getContext('2d');
+    const rett = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rett.width * dpr;
+    canvas.height = rett.height * dpr;
+    ctx.scale(dpr, dpr);
+    ctx.strokeStyle = '#4a90d9';
+    ctx.lineWidth = 14;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    let tratti = [];
+    let trattoCorrente = null;
+
+    const posizione = (e) => {
+      const r = canvas.getBoundingClientRect();
+      return [e.clientX - r.left, e.clientY - r.top];
+    };
+
+    canvas.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      canvas.setPointerCapture(e.pointerId);
+      trattoCorrente = [posizione(e)];
+      tratti.push(trattoCorrente);
+    });
+    canvas.addEventListener('pointermove', (e) => {
+      if (!trattoCorrente) return;
+      const p = posizione(e);
+      const prima = trattoCorrente[trattoCorrente.length - 1];
+      trattoCorrente.push(p);
+      ctx.beginPath();
+      ctx.moveTo(prima[0], prima[1]);
+      ctx.lineTo(p[0], p[1]);
+      ctx.stroke();
+    });
+    const fineTratto = () => { trattoCorrente = null; };
+    canvas.addEventListener('pointerup', fineTratto);
+    canvas.addEventListener('pointercancel', fineTratto);
+
+    const pulisci = () => {
+      tratti = [];
+      trattoCorrente = null;
+      ctx.clearRect(0, 0, rett.width, rett.height);
+    };
+
+    const guida = document.getElementById('guida');
+    const mostraAiuto = (forte) => {
+      guida.classList.add('visibile');
+      if (forte) guida.classList.add('forte');
+    };
+
+    document.getElementById('btn-cancella').addEventListener('click', pulisci);
+    document.getElementById('btn-aiuto').addEventListener('click', () => {
+      mostraAiuto(false);
+      parla(`Ricalca con il dito. ${item.say}`);
+    });
+
+    /* --- controllo con aiuti progressivi --- */
+    let tentativi = 0;
+    let risolto = false;
+
+    document.getElementById('btn-fatto').addEventListener('click', () => {
+      if (risolto) return;
+      const esito = valutaScrittura(tratti, glifo, tentativi);
+
+      if (esito.ok) {
+        risolto = true;
+        festeggiaMascotte();
+        parla(`${casuale(LODI)} ${item.say}!`, { rate: 1 });
+        dopo(1900, () => vaiDettato(idModulo, stelle + 1));
+        return;
+      }
+
+      tentativi++;
+      if (esito.pochiPunti) {
+        mostraAiuto(tentativi >= 2);
+        parla('Scrivi qui, bello grande!');
+        return;
+      }
+      // primo aiuto: compare la traccia grigia; poi diventa più scura
+      mostraAiuto(tentativi >= 2);
+      pulisci();
+      parla(tentativi === 1
+        ? `Quasi! Ricalca la traccia grigia. ${item.say}`
+        : `Prova ancora, segui la traccia. ${item.say}`);
     });
   }
 
@@ -560,6 +846,10 @@
           { testo: '🔊 Accesa', valore: 'true', attivo: impostazioni.audio },
           { testo: '🔇 Spenta', valore: 'false', attivo: !impostazioni.audio },
         ])}
+        ${opzione('Suoni di festa', 'suoni', [
+          { testo: '🎵 Accesi', valore: 'true', attivo: impostazioni.suoni },
+          { testo: '🔕 Spenti', valore: 'false', attivo: !impostazioni.suoni },
+        ])}
       </div>
     `);
 
@@ -572,6 +862,7 @@
         if (nome === 'maiuscole') impostazioni.maiuscole = valore === 'true';
         if (nome === 'velocita') impostazioni.velocita = Number(valore);
         if (nome === 'audio') impostazioni.audio = valore === 'true';
+        if (nome === 'suoni') impostazioni.suoni = valore === 'true';
         salvaImpostazioni();
         vaiGenitori();
       });

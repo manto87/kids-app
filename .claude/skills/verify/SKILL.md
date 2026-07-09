@@ -39,7 +39,21 @@ npx http-server /path/al/repo -p 8321 -s     # oppure python3 -m http.server
 7. Offline: caricare la pagina, attendere ~1 s (installazione service worker),
    `context.setOffline(true)` + reload → la home deve ancora caricarsi.
 
+8. Scrivi/dettato (`#vai-scrivi` → `#detta-numeri`/`#detta-lettere`): la voce dice
+   "Scrivi: cinque"; si disegna sul canvas `#lavagna-canvas` con eventi pointer
+   (mouse down/move/up funzionano). Scarabocchio + `#btn-fatto` → compare `.guida.visibile`
+   (aiuto). Per scrivere "bene" in test: campiona i pixel del glifo da un canvas
+   offscreen (font `bold 190px Trebuchet MS`), ordina i punti nearest-neighbor,
+   spezza in tratti sui salti >24px e ricalca col mouse. La valutazione normalizza
+   posizione/scala, quindi non serve allineamento perfetto.
+9. Suono ta-da: spia `AudioContext.prototype.createOscillator` in addInitScript;
+   una risposta giusta crea 3 oscillatori.
+
 ## Attenzioni
+
+- I timer dei giochi usano `dopo()` (legato alla generazione di schermata):
+  navigare altrove annulla avanzamenti e ripetizioni vocali pendenti.
+  Nei test comunque meglio attendere ~2 s dopo una risposta giusta prima di navigare.
 
 - Il pulsante 🏠 porta SEMPRE alla home, non alla schermata precedente.
 - Dopo aver modificato i file statici, alzare `VERSIONE` in `sw.js` o la cache servirà i vecchi file.

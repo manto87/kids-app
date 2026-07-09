@@ -14,7 +14,8 @@ schermata home del telefono o del tablet come una vera app e funziona anche
 - **🗣️ Parole** — prime parole divise in categorie semplici: Famiglia, Animali, Cibo, Oggetti.
 - **🎮 Gioco "Ascolta e trova"** — in ogni sezione: la voce chiede un elemento e il bambino lo tocca tra 2 (o 3) scelte grandi (per le lettere la voce pronuncia solo la lettera). Si vincono 5 stelle e si festeggia. Nessun tempo limite, nessuna penalità.
 - **🧩 Gioco "Completa la parola"** — nella sezione Lettere: una parola con una lettera nascosta, si ascolta la parola e si sceglie la lettera mancante.
-- **🦊 Gino, la mascotte** — salta fuori e festeggia con i coriandoli a ogni risposta giusta.
+- **🦊 Gino, la mascotte** — salta fuori e festeggia con i coriandoli (e un "ta-da" musicale) a ogni risposta giusta.
+- **✍️ Scrivi (dettato)** — la voce detta un numero o una lettera e il bambino la scrive col dito sulla lavagna. Se non riesce, aiuti progressivi: compare la traccia grigia da ricalcare (poi più scura) e il controllo diventa via via più generoso. Non conta dove e quanto grande si scrive: conta la forma.
 
 ## Progettata per bambini con deficit cognitivo
 
