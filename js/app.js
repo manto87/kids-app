@@ -9,59 +9,108 @@
 
   const app = document.getElementById('app');
 
-  /* ---------- impostazioni (area genitori), salvate sul dispositivo ---------- */
+  /* ---------- profili dei bambini e impostazioni del dispositivo ----------
+     Ogni bambino ha il suo profilo (nome, genere, difficoltà) con le SUE
+     statistiche. Sul dispositivo restano le impostazioni comuni (voce).
+     I profili sono ricordati e si può passare da un bambino all'altro o
+     crearne di nuovi dall'area genitori. */
 
-  const IMPOSTAZIONI_DEFAULT = {
+  const uid = () => 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+  const profiloNuovo = (nome, genere) => ({
+    id: uid(),
+    nome: nome || '',
+    genere: genere || null,
     numScelte: 2,        // scelte nel gioco: 2 = più facile
-    maiuscole: true,     // lettere/parole in MAIUSCOLO (più leggibili all'inizio)
-    velocita: 0.75,      // velocità della voce (lenta)
-    audio: true,
-    suoni: true,         // suono di festa quando si fa giusto
-    nome: '',            // nome del bambino (per i complimenti)
-    genere: null,        // 'm' | 'f' — per bravo/brava
-    onboardingFatto: false,
-  };
+    maiuscole: true,     // lettere/parole in MAIUSCOLO
+    statistiche: {},     // giusti/sbagliati per attività e per elemento
+  });
 
-  let impostazioni = caricaImpostazioni();
+  // profilo di scorta, usato solo prima che ne esista uno vero (onboarding)
+  const PROFILO_SCORTA = profiloNuovo('', null);
 
-  function caricaImpostazioni() {
+  let profili = [];
+  let attivoId = null;
+
+  /* Impostazioni del dispositivo (valgono per tutti i bambini). */
+  const DISPOSITIVO_DEFAULT = { velocita: 0.75, audio: true, suoni: true };
+  let dispositivo = { ...DISPOSITIVO_DEFAULT };
+
+  function salvaDispositivo() {
+    try { localStorage.setItem('dispositivo', JSON.stringify(dispositivo)); } catch {}
+  }
+
+  function salvaProfili() {
+    try { localStorage.setItem('profili', JSON.stringify({ profili, attivo: attivoId })); } catch {}
+  }
+
+  function profiloAttivo() {
+    return profili.find(p => p.id === attivoId) || null;
+  }
+
+  // scorciatoia sempre valida (mai null) per leggere il profilo corrente
+  const P = () => profiloAttivo() || PROFILO_SCORTA;
+
+  /* Carica i dati; se trova il vecchio formato a profilo singolo lo migra
+     in un profilo, senza perdere né le impostazioni né le statistiche. */
+  function caricaDati() {
+    let vecchie = {};
+    try { vecchie = JSON.parse(localStorage.getItem('impostazioni') || '{}'); } catch {}
+
+    // impostazioni del dispositivo (nuovo formato o migrazione dal vecchio)
     try {
-      return { ...IMPOSTAZIONI_DEFAULT, ...JSON.parse(localStorage.getItem('impostazioni') || '{}') };
-    } catch {
-      return { ...IMPOSTAZIONI_DEFAULT };
+      const disp = JSON.parse(localStorage.getItem('dispositivo') || 'null');
+      if (disp) dispositivo = { ...DISPOSITIVO_DEFAULT, ...disp };
+      else {
+        if (vecchie.velocita != null) dispositivo.velocita = vecchie.velocita;
+        if (vecchie.audio != null) dispositivo.audio = vecchie.audio;
+        if (vecchie.suoni != null) dispositivo.suoni = vecchie.suoni;
+      }
+    } catch {}
+
+    // profili (nuovo formato)
+    try {
+      const raw = JSON.parse(localStorage.getItem('profili') || 'null');
+      if (raw && Array.isArray(raw.profili) && raw.profili.length) {
+        profili = raw.profili;
+        attivoId = raw.attivo && profili.some(p => p.id === raw.attivo) ? raw.attivo : profili[0].id;
+        return;
+      }
+    } catch {}
+
+    // migrazione dal vecchio profilo singolo
+    if (vecchie.onboardingFatto && vecchie.genere) {
+      let stat = {};
+      try { stat = JSON.parse(localStorage.getItem('statistiche') || '{}'); } catch {}
+      const p = profiloNuovo(vecchie.nome, vecchie.genere);
+      if (vecchie.numScelte) p.numScelte = vecchie.numScelte;
+      if (vecchie.maiuscole != null) p.maiuscole = vecchie.maiuscole;
+      p.statistiche = stat || {};
+      profili = [p];
+      attivoId = p.id;
+      salvaProfili();
+      salvaDispositivo();
     }
   }
 
-  function salvaImpostazioni() {
-    try { localStorage.setItem('impostazioni', JSON.stringify(impostazioni)); } catch {}
-  }
+  caricaDati();
 
-  /* ---------- statistiche (giusti/sbagliati) ----------
-     Salvate sul dispositivo, sia per attività sia per singolo elemento.
-     Servono ai genitori per vedere i progressi e sono la base per la
-     futura difficoltà adattiva (aumentare la sfida dove il bambino
-     è già bravo). */
-
-  let statistiche = caricaStatistiche();
-
-  function caricaStatistiche() {
-    try { return JSON.parse(localStorage.getItem('statistiche') || '{}'); }
-    catch { return {}; }
-  }
-
-  function salvaStatistiche() {
-    try { localStorage.setItem('statistiche', JSON.stringify(statistiche)); } catch {}
-  }
+  /* ---------- statistiche (giusti/sbagliati), per bambino ----------
+     Registrate nel profilo attivo, sia per attività sia per singolo
+     elemento: base per i progressi e per la futura difficoltà adattiva. */
 
   function registra(attivita, itemId, giusto) {
-    if (!statistiche[attivita]) statistiche[attivita] = { giusti: 0, sbagliati: 0, items: {} };
-    const a = statistiche[attivita];
+    const prof = profiloAttivo();
+    if (!prof) return;
+    const s = prof.statistiche;
+    if (!s[attivita]) s[attivita] = { giusti: 0, sbagliati: 0, items: {} };
+    const a = s[attivita];
     if (giusto) a.giusti++; else a.sbagliati++;
     if (itemId != null) {
       if (!a.items[itemId]) a.items[itemId] = { giusti: 0, sbagliati: 0 };
       if (giusto) a.items[itemId].giusti++; else a.items[itemId].sbagliati++;
     }
-    salvaStatistiche();
+    salvaProfili();
   }
 
   /* ---------- sintesi vocale (voce italiana, viva e calorosa) ---------- */
@@ -98,17 +147,17 @@
      - festa: consegna allegra ed espressiva (voce più acuta e vivace),
        usata per i complimenti così suonano davvero entusiasti. */
   function parla(testo, opzioni = {}) {
-    if (!impostazioni.audio || !('speechSynthesis' in window)) return;
+    if (!dispositivo.audio || !('speechSynthesis' in window)) return;
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(testo);
     u.lang = 'it-IT';
     if (voceItaliana) u.voice = voceItaliana;
     if (opzioni.festa) {
       // acuto e un po' più veloce: suona gioioso e sorpreso
-      u.rate = opzioni.rate || Math.max(impostazioni.velocita, 1.0);
+      u.rate = opzioni.rate || Math.max(dispositivo.velocita, 1.0);
       u.pitch = opzioni.pitch || (1.3 + Math.random() * 0.2);
     } else {
-      u.rate = opzioni.rate || impostazioni.velocita;
+      u.rate = opzioni.rate || dispositivo.velocita;
       u.pitch = opzioni.pitch || 1.15;
     }
     speechSynthesis.speak(u);
@@ -120,23 +169,18 @@
 
   /* ---------- complimenti e incoraggiamenti (col nome e col genere) ---------- */
 
-  function aggBravo(maiuscolo) {
-    const w = impostazioni.genere === 'f' ? 'brava' : 'bravo';
-    return maiuscolo ? w.charAt(0).toUpperCase() + w.slice(1) : w;
-  }
-
   /* Complimento vario: a volte di genere (Bravo/Brava), a volte neutro,
      e spesso col nome del bambino, così ogni festa suona diversa. */
   function lode() {
-    const genere = impostazioni.genere === 'f' ? LODI_F : LODI_M;
+    const genere = P().genere === 'f' ? LODI_F : LODI_M;
     let frase = Math.random() < 0.6 ? casuale(genere) : casuale(LODI_NEUTRE);
-    if (impostazioni.nome && Math.random() < 0.6) frase += ` ${impostazioni.nome}`;
+    if (P().nome && Math.random() < 0.6) frase += ` ${P().nome}`;
     return frase + '!';
   }
 
   function incoraggiamento() {
     let frase = casuale(INCORAGGIAMENTI);
-    if (impostazioni.nome && Math.random() < 0.35) frase = `Dai ${impostazioni.nome}! ${frase}`;
+    if (P().nome && Math.random() < 0.35) frase = `Dai ${P().nome}! ${frase}`;
     return frase;
   }
 
@@ -145,7 +189,7 @@
   let contestoAudio = null;
 
   function suonaTaDa() {
-    if (!impostazioni.suoni) return;
+    if (!dispositivo.suoni) return;
     try {
       contestoAudio = contestoAudio || new (window.AudioContext || window.webkitAudioContext)();
       if (contestoAudio.state === 'suspended') contestoAudio.resume();
@@ -167,7 +211,7 @@
   }
 
   function mostraTesto(testo) {
-    return impostazioni.maiuscole ? testo.toUpperCase() : testo.toLowerCase();
+    return P().maiuscole ? testo.toUpperCase() : testo.toLowerCase();
   }
 
   /* ---------- Gino, la mascotte che festeggia ---------- */
@@ -269,21 +313,24 @@
     if (btn) btn.addEventListener('click', () => vaiHome());
   }
 
-  /* ---------- ONBOARDING: nome e genere del bambino ----------
-     Serve per rivolgersi al bambino per nome e per usare i complimenti
-     al maschile o al femminile. Si può rifare dall'area genitori. */
+  /* ---------- FORM PROFILO: crea o modifica un bambino ----------
+     - primo=true: primissimo avvio, nessun profilo ancora (niente 🏠)
+     - idModifica impostato: modifica un profilo esistente
+     - altrimenti: crea un nuovo bambino (dall'area genitori) */
 
-  function vaiOnboarding(modifica = false) {
-    let genereScelto = impostazioni.genere;
+  function vaiProfiloForm({ idModifica = null, primo = false } = {}) {
+    const esistente = idModifica ? profili.find(p => p.id === idModifica) : null;
+    let genereScelto = esistente ? esistente.genere : null;
+    const valoreNome = (esistente ? esistente.nome : '') || '';
 
     render(`
-      ${modifica ? barra('👋 Il bambino') : ''}
+      ${primo ? '' : barra(esistente ? '✏️ Modifica' : '➕ Nuovo bambino')}
       <div class="onboarding">
         <div class="mascotte-dondola">${mascotte('felice', 150)}</div>
-        <h1>Ciao!</h1>
+        <h1>${esistente ? 'Chi sei?' : 'Ciao!'}</h1>
         <p class="nota grande">Come si chiama il bambino o la bambina?</p>
         <input id="campo-nome" class="campo-nome" type="text" maxlength="16"
-               placeholder="Nome" value="${(impostazioni.nome || '').replace(/"/g, '&quot;')}"
+               placeholder="Nome" value="${valoreNome.replace(/"/g, '&quot;')}"
                autocomplete="off" autocapitalize="words">
         <p class="nota grande">È un maschietto o una femminuccia?</p>
         <div class="scelte-genere">
@@ -295,12 +342,22 @@
           </button>
         </div>
         <button class="btn-grande" id="btn-inizia" ${genereScelto ? '' : 'disabled'}>
-          ${modifica ? '💾 Salva' : '🚀 Inizia!'}
+          ${esistente ? '💾 Salva' : (primo ? '🚀 Inizia!' : '➕ Crea')}
         </button>
+        ${esistente && profili.length > 1
+          ? `<button class="btn-elimina" id="btn-elimina">🗑️ Elimina questo bambino</button>` : ''}
       </div>
     `);
 
-    if (modifica) collegaCasa();
+    if (!primo) collegaCasa();
+
+    const btnElimina = document.getElementById('btn-elimina');
+    if (btnElimina) btnElimina.addEventListener('click', () => {
+      profili = profili.filter(p => p.id !== esistente.id);
+      if (attivoId === esistente.id) attivoId = profili[0] ? profili[0].id : null;
+      salvaProfili();
+      vaiGenitori();
+    });
 
     app.querySelectorAll('.btn-genere').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -313,16 +370,22 @@
 
     document.getElementById('btn-inizia').addEventListener('click', () => {
       if (!genereScelto) return;
-      impostazioni.nome = document.getElementById('campo-nome').value.trim().slice(0, 16);
-      impostazioni.genere = genereScelto;
-      impostazioni.onboardingFatto = true;
-      salvaImpostazioni();
-      if (modifica) {
-        vaiGenitori();
+      const nome = document.getElementById('campo-nome').value.trim().slice(0, 16);
+      if (esistente) {
+        esistente.nome = nome;
+        esistente.genere = genereScelto;
       } else {
+        const p = profiloNuovo(nome, genereScelto);
+        profili.push(p);
+        attivoId = p.id;   // il bambino appena creato diventa quello attivo
+      }
+      salvaProfili();
+      if (primo) {
         vaiHome();
-        const saluto = impostazioni.nome ? `Ciao ${impostazioni.nome}!` : 'Ciao!';
+        const saluto = nome ? `Ciao ${nome}!` : 'Ciao!';
         parla(`${saluto} Impariamo insieme!`, { festa: true });
+      } else {
+        vaiGenitori();
       }
     });
   }
@@ -539,7 +602,7 @@
 
     const bersaglio = casuale(pool);
     const distrattori = [];
-    while (distrattori.length < impostazioni.numScelte - 1) {
+    while (distrattori.length < P().numScelte - 1) {
       const d = casuale(pool);
       if (d.id !== bersaglio.id && !distrattori.some(x => x.id === d.id)) distrattori.push(d);
     }
@@ -576,7 +639,7 @@
       <div class="gioco-domanda">
         <button class="btn-ripeti" id="btn-domanda">🔊 Ascolta</button>
       </div>
-      <div class="gioco-scelte ${impostazioni.numScelte === 3 ? 'tre' : ''}">${carte}</div>
+      <div class="gioco-scelte ${P().numScelte === 3 ? 'tre' : ''}">${carte}</div>
       <div style="height:16px"></div>
     `);
 
@@ -623,8 +686,8 @@
   }
 
   function vaiFesta(riparti) {
-    const bravissimo = impostazioni.genere === 'f' ? 'Bravissima' : 'Bravissimo';
-    const conNome = impostazioni.nome ? `${bravissimo} ${impostazioni.nome}` : bravissimo;
+    const bravissimo = P().genere === 'f' ? 'Bravissima' : 'Bravissimo';
+    const conNome = P().nome ? `${bravissimo} ${P().nome}` : bravissimo;
     render(`
       ${barra('')}
       <div class="festa">
@@ -669,7 +732,7 @@
 
     const alfabeto = DATA.lettere.items.map(x => x.glyph.toLowerCase());
     const distrattori = [];
-    while (distrattori.length < impostazioni.numScelte - 1) {
+    while (distrattori.length < P().numScelte - 1) {
       const d = casuale(alfabeto);
       if (d !== letteraGiusta && !distrattori.includes(d)) distrattori.push(d);
     }
@@ -697,7 +760,7 @@
         <div class="parola-tessere">${tessere}</div>
         <button class="btn-ripeti" id="btn-domanda">🔊 Ascolta</button>
       </div>
-      <div class="gioco-scelte ${impostazioni.numScelte === 3 ? 'tre' : ''}">${carte}</div>
+      <div class="gioco-scelte ${P().numScelte === 3 ? 'tre' : ''}">${carte}</div>
       <div style="height:16px"></div>
     `);
 
@@ -1017,8 +1080,20 @@
         </div>
       </div>`;
 
-    const nomeMostrato = impostazioni.nome || '(non impostato)';
-    const genereMostrato = impostazioni.genere === 'f' ? '👧 Femmina' : impostazioni.genere === 'm' ? '👦 Maschio' : '—';
+    // elenco dei bambini: si tocca per rendere attivo, ✏️ per modificare
+    const listaBambini = profili.map(p => {
+      const faccia = p.genere === 'f' ? '👧' : '👦';
+      const attivo = p.id === attivoId;
+      return `
+        <div class="riga-profilo ${attivo ? 'attivo' : ''}">
+          <button class="btn-profilo" data-scegli="${p.id}">
+            <span class="faccia">${faccia}</span>
+            <span class="nome-profilo">${(p.nome || 'Senza nome')}</span>
+            ${attivo ? '<span class="spunta">✓</span>' : ''}
+          </button>
+          <button class="btn-valore piccolo" data-modifica="${p.id}" aria-label="Modifica ${p.nome}">✏️</button>
+        </div>`;
+    }).join('');
 
     render(`
       ${barra('⚙️ Genitori')}
@@ -1026,59 +1101,70 @@
         <p class="nota">Impostazioni per adattare l'app al bambino. Questa pagina si apre solo tenendo premuto l'ingranaggio per 2 secondi.</p>
 
         <div class="opzione">
-          <div class="etichetta">Bambino</div>
-          <div class="riga-bambino">
-            <div><strong>${nomeMostrato}</strong> · ${genereMostrato}</div>
-            <button class="btn-valore" id="btn-modifica-bambino">✏️ Cambia</button>
-          </div>
+          <div class="etichetta">Bambini</div>
+          <p class="nota">Tocca un nome per farlo giocare. Ogni bambino ha i suoi progressi.</p>
+          <div class="lista-profili">${listaBambini}</div>
+          <div class="valori"><button class="btn-valore" id="btn-nuovo-bambino">➕ Aggiungi bambino</button></div>
         </div>
 
         ${bloccoProgressi()}
 
         ${opzione('Scelte nel gioco (meno scelte = più facile)', 'numScelte', [
-          { testo: '2 scelte', valore: '2', attivo: impostazioni.numScelte === 2 },
-          { testo: '3 scelte', valore: '3', attivo: impostazioni.numScelte === 3 },
+          { testo: '2 scelte', valore: '2', attivo: P().numScelte === 2 },
+          { testo: '3 scelte', valore: '3', attivo: P().numScelte === 3 },
         ])}
         ${opzione('Scrittura di lettere e parole', 'maiuscole', [
-          { testo: 'MAIUSCOLE', valore: 'true', attivo: impostazioni.maiuscole },
-          { testo: 'minuscole', valore: 'false', attivo: !impostazioni.maiuscole },
+          { testo: 'MAIUSCOLE', valore: 'true', attivo: P().maiuscole },
+          { testo: 'minuscole', valore: 'false', attivo: !P().maiuscole },
         ])}
         ${opzione('Velocità della voce', 'velocita', [
-          { testo: '🐢 Lenta', valore: '0.75', attivo: impostazioni.velocita <= 0.8 },
-          { testo: '🐇 Normale', valore: '0.95', attivo: impostazioni.velocita > 0.8 },
+          { testo: '🐢 Lenta', valore: '0.75', attivo: dispositivo.velocita <= 0.8 },
+          { testo: '🐇 Normale', valore: '0.95', attivo: dispositivo.velocita > 0.8 },
         ])}
         ${opzione('Voce', 'audio', [
-          { testo: '🔊 Accesa', valore: 'true', attivo: impostazioni.audio },
-          { testo: '🔇 Spenta', valore: 'false', attivo: !impostazioni.audio },
+          { testo: '🔊 Accesa', valore: 'true', attivo: dispositivo.audio },
+          { testo: '🔇 Spenta', valore: 'false', attivo: !dispositivo.audio },
         ])}
         ${opzione('Suoni di festa', 'suoni', [
-          { testo: '🎵 Accesi', valore: 'true', attivo: impostazioni.suoni },
-          { testo: '🔕 Spenti', valore: 'false', attivo: !impostazioni.suoni },
+          { testo: '🎵 Accesi', valore: 'true', attivo: dispositivo.suoni },
+          { testo: '🔕 Spenti', valore: 'false', attivo: !dispositivo.suoni },
         ])}
       </div>
     `);
 
     collegaCasa();
+
+    // le impostazioni di difficoltà sono del BAMBINO; voce/suoni del dispositivo
     app.querySelectorAll('.opzione .btn-valore[data-opzione]').forEach(btn => {
       btn.addEventListener('click', () => {
         const nome = btn.dataset.opzione;
         const valore = btn.dataset.valore;
-        if (nome === 'numScelte') impostazioni.numScelte = Number(valore);
-        if (nome === 'maiuscole') impostazioni.maiuscole = valore === 'true';
-        if (nome === 'velocita') impostazioni.velocita = Number(valore);
-        if (nome === 'audio') impostazioni.audio = valore === 'true';
-        if (nome === 'suoni') impostazioni.suoni = valore === 'true';
-        salvaImpostazioni();
+        if (nome === 'numScelte') { P().numScelte = Number(valore); salvaProfili(); }
+        else if (nome === 'maiuscole') { P().maiuscole = valore === 'true'; salvaProfili(); }
+        else if (nome === 'velocita') { dispositivo.velocita = Number(valore); salvaDispositivo(); }
+        else if (nome === 'audio') { dispositivo.audio = valore === 'true'; salvaDispositivo(); }
+        else if (nome === 'suoni') { dispositivo.suoni = valore === 'true'; salvaDispositivo(); }
         vaiGenitori();
       });
     });
 
-    document.getElementById('btn-modifica-bambino').addEventListener('click', () => vaiOnboarding(true));
+    // scegli quale bambino gioca
+    app.querySelectorAll('[data-scegli]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        attivoId = btn.dataset.scegli;
+        salvaProfili();
+        vaiGenitori();
+      });
+    });
+    app.querySelectorAll('[data-modifica]').forEach(btn => {
+      btn.addEventListener('click', () => vaiProfiloForm({ idModifica: btn.dataset.modifica }));
+    });
+    document.getElementById('btn-nuovo-bambino').addEventListener('click', () => vaiProfiloForm({}));
 
     const btnAzzera = document.getElementById('btn-azzera');
     if (btnAzzera) btnAzzera.addEventListener('click', () => {
-      statistiche = {};
-      salvaStatistiche();
+      const prof = profiloAttivo();
+      if (prof) { prof.statistiche = {}; salvaProfili(); }
       vaiGenitori();
     });
   }
@@ -1095,18 +1181,20 @@
   };
 
   function bloccoProgressi() {
-    const chiavi = Object.keys(ETICHETTE_ATTIVITA).filter(k => statistiche[k]);
+    const stat = P().statistiche;
+    const nome = P().nome || 'questo bambino';
+    const chiavi = Object.keys(ETICHETTE_ATTIVITA).filter(k => stat[k]);
     if (!chiavi.length) {
       return `
         <div class="opzione">
-          <div class="etichetta">Progressi</div>
-          <p class="nota">Ancora nessun gioco completato. Qui vedrai quante risposte giuste e sbagliate fa il bambino in ogni attività.</p>
+          <div class="etichetta">Progressi di ${nome}</div>
+          <p class="nota">Ancora nessun gioco completato. Qui vedrai quante risposte giuste e sbagliate fa in ogni attività.</p>
         </div>`;
     }
 
     let totG = 0, totS = 0;
     const righe = chiavi.map(k => {
-      const s = statistiche[k];
+      const s = stat[k];
       totG += s.giusti; totS += s.sbagliati;
       const tot = s.giusti + s.sbagliati;
       const perc = tot ? Math.round(s.giusti / tot * 100) : 0;
@@ -1122,7 +1210,7 @@
 
     return `
       <div class="opzione">
-        <div class="etichetta">Progressi</div>
+        <div class="etichetta">Progressi di ${nome}</div>
         <div class="riga-stat totale">
           <span class="nome-stat">Totale</span>
           <span class="val-stat"><span class="ok">${totG} ✓</span> · <span class="ko">${totS} ✗</span> · ${percTot}%</span>
@@ -1135,6 +1223,6 @@
 
   /* ---------- avvio ---------- */
 
-  if (impostazioni.onboardingFatto) vaiHome();
-  else vaiOnboarding();
+  if (profili.length) vaiHome();
+  else vaiProfiloForm({ primo: true });
 })();

@@ -16,8 +16,9 @@ schermata home del telefono o del tablet come una vera app e funziona anche
 - **🧩 Gioco "Completa la parola"** — nella sezione Lettere: una parola con una lettera nascosta, si ascolta la parola e si sceglie la lettera mancante.
 - **🦊 Gino, la mascotte** — salta fuori e festeggia con i coriandoli (e un "ta-da" musicale) a ogni risposta giusta.
 - **✍️ Scrivi (dettato)** — la voce detta un numero o una lettera e il bambino la scrive col dito sulla lavagna. Se non riesce, aiuti progressivi: compare la traccia grigia da ricalcare (poi più scura) e il controllo diventa via via più generoso. Non conta dove e quanto grande si scrive: conta la forma.
-- **👋 Nome e genere** — all'avvio si inserisce il nome del bambino e se è maschio o femmina, così i complimenti sono personalizzati e corretti al maschile/femminile ("Brava Sofia!", "Bravissimo Marco!"). Si può cambiare dall'area genitori.
-- **📊 Progressi** — l'app registra risposte giuste e sbagliate per ogni attività; i genitori li vedono nell'area riservata (con azzeramento). È la base per la futura difficoltà adattiva.
+- **👦👧 Più bambini** — ogni bambino ha il suo profilo (nome, genere, difficoltà) e i **suoi** progressi. Dall'area genitori si sceglie chi gioca, si aggiunge un nuovo bambino o si modifica/elimina un profilo. I profili restano salvati sul dispositivo.
+- **👋 Nome e genere** — inseriti al primo avvio; i complimenti sono personalizzati e corretti al maschile/femminile ("Brava Sofia!", "Bravissimo Marco!").
+- **📊 Progressi per bambino** — l'app registra risposte giuste e sbagliate per ogni attività, separatamente per ciascun bambino; i genitori li vedono nell'area riservata (con azzeramento). È la base per la futura difficoltà adattiva.
 
 ## Progettata per bambini con deficit cognitivo
 
@@ -27,12 +28,10 @@ schermata home del telefono o del tablet come una vera app e funziona anche
 - **Solo rinforzo positivo**: la risposta sbagliata si spegne con dolcezza e si riprova subito; niente timer, punteggi negativi o suoni bruschi.
 - **Animazioni delicate**, rispettano `prefers-reduced-motion`.
 - **Area genitori** protetta (si apre tenendo premuto ⚙️ per 2 secondi) per adattare l'app al bambino:
-  - nome e genere del bambino
-  - numero di scelte nel gioco (2 = più facile, 3 = più difficile)
-  - scrittura in MAIUSCOLO o minuscolo
-  - velocità della voce (lenta / normale)
-  - voce accesa / spenta, suoni di festa accesi / spenti
-  - progressi (giusti/sbagliati per attività) con azzeramento
+  - scelta del bambino attivo, aggiunta/modifica/eliminazione dei profili
+  - numero di scelte nel gioco e scrittura MAIUSCOLO/minuscolo (per bambino)
+  - velocità della voce, voce e suoni di festa (per il dispositivo)
+  - progressi per bambino (giusti/sbagliati per attività) con azzeramento
 
 ## Come provarla
 
