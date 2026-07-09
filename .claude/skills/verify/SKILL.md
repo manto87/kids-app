@@ -45,7 +45,10 @@ npx http-server /path/al/repo -p 8321 -s     # oppure python3 -m http.server
    (aiuto). Per scrivere "bene" in test: campiona i pixel del glifo da un canvas
    offscreen (font `bold 190px Trebuchet MS`), ordina i punti nearest-neighbor,
    spezza in tratti sui salti >24px e ricalca col mouse. La valutazione normalizza
-   posizione/scala, quindi non serve allineamento perfetto.
+   posizione/scala, quindi non serve allineamento perfetto. La metrica è a distanze
+   (precisione Tp=8px, copertura Tc=14px su glifo 190px, eccesso lunghezza ≤3,8×):
+   scarabocchi, riempimenti e glifi dissimili falliscono; nei test sintetici
+   campionare i pixel a passo 9 (non più fitto, o l'eccesso supera il tetto).
 9. Suono ta-da: spia `AudioContext.prototype.createOscillator` in addInitScript;
    una risposta giusta crea 3 oscillatori.
 
