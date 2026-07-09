@@ -456,6 +456,65 @@ button {
   50%      { transform: scale(1.12); }
 }
 
+/* ---------- scrivi (dettato sulla lavagna) ---------- */
+
+.lavagna {
+  position: relative;
+  flex: 1;
+  min-height: 300px;
+  background: var(--carta);
+  border: 4px solid var(--viola-chiaro);
+  border-radius: var(--raggio);
+  box-shadow: var(--ombra);
+  overflow: hidden;
+}
+
+.lavagna canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.lavagna .guida {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: min(52vw, 240px);
+  font-weight: bold;
+  color: rgba(58, 51, 48, 0.14);
+  pointer-events: none;
+  user-select: none;
+}
+
+.lavagna .guida.visibile { display: flex; }
+.lavagna .guida.forte { color: rgba(58, 51, 48, 0.30); }
+
+.dettato-bottoni {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 16px 0 8px;
+}
+
+.btn-fatto {
+  background: var(--verde-chiaro);
+  border: 4px solid var(--verde);
+  border-radius: var(--raggio);
+  box-shadow: var(--ombra);
+  padding: 16px 34px;
+  font-size: 30px;
+  font-weight: bold;
+  min-height: 76px;
+}
+
+.btn-fatto:active { transform: translateY(3px); box-shadow: 0 3px 0 rgba(58,51,48,0.12); }
+
 /* ---------- animazioni ---------- */
 
 @keyframes salta {
