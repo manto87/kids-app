@@ -40,12 +40,15 @@ npx http-server /path/al/repo -p 8321 -s     # oppure python3 -m http.server
    `context.setOffline(true)` + reload → la home deve ancora caricarsi.
 
 8. Scrivi/dettato (`#vai-scrivi` → `#detta-numeri`/`#detta-lettere`): la voce dice
-   "Scrivi: cinque"; si disegna sul canvas `#lavagna-canvas` con eventi pointer
+   SOLO il bersaglio (es. "cinque"); si disegna sul canvas `#lavagna-canvas` con eventi pointer
    (mouse down/move/up funzionano). Scarabocchio + `#btn-fatto` → compare `.guida.visibile`
    (aiuto). Per scrivere "bene" in test: campiona i pixel del glifo da un canvas
    offscreen (font `bold 190px Trebuchet MS`), ordina i punti nearest-neighbor,
    spezza in tratti sui salti >24px e ricalca col mouse. La valutazione normalizza
-   posizione/scala, quindi non serve allineamento perfetto.
+   posizione/scala, quindi non serve allineamento perfetto. La metrica è a distanze
+   (precisione Tp=8px, copertura Tc=14px su glifo 190px, eccesso lunghezza ≤3,8×):
+   scarabocchi, riempimenti e glifi dissimili falliscono; nei test sintetici
+   campionare i pixel a passo 9 (non più fitto, o l'eccesso supera il tetto).
 9. Suono ta-da: spia `AudioContext.prototype.createOscillator` in addInitScript;
    una risposta giusta crea 3 oscillatori.
 

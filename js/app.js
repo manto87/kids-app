@@ -588,36 +588,48 @@
   }
 
   /* Confronta il disegno del bambino con la forma del glifo.
-     Il disegno viene prima riportato (spostato e scalato) sulla
-     sagoma, così non importa DOVE e QUANTO GRANDE ha scritto. */
+     Il disegno viene prima riportato (spostato e scalato) sulla sagoma,
+     così non importa DOVE e QUANTO GRANDE ha scritto; poi si misurano
+     le distanze punto-per-punto in entrambe le direzioni:
+     - precisione: quanta scrittura sta vicino alla forma giusta
+     - copertura:  quanta forma giusta è stata effettivamente ripassata
+     - eccesso:    tratto troppo lungo = scarabocchio, non scrittura */
   function valutaScrittura(tratti, glifo, tentativi) {
-    const punti = tratti.flat();
-    if (punti.length < 12) return { ok: false, pochiPunti: true };
-
-    const W = 220, H = 280;
-    const font = `bold 190px ${FONTE_SCRITTURA}`;
-
-    const nuovaTela = () => {
-      const c = document.createElement('canvas');
-      c.width = W; c.height = H;
-      return c;
-    };
-    const disegnaGlifo = (ctx, dx = 0, dy = 0) => {
-      ctx.font = font;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(glifo, W / 2 + dx, H / 2 + dy);
-    };
-    const pixelAccesi = (canvas) => {
-      const dati = canvas.getContext('2d').getImageData(0, 0, W, H).data;
-      const accesi = [];
-      for (let y = 0; y < H; y += 2) {
-        for (let x = 0; x < W; x += 2) {
-          if (dati[(y * W + x) * 4 + 3] > 40) accesi.push([x, y]);
+    // ricampiona i tratti a passo fisso e misura la lunghezza totale
+    const inchiostro = [];
+    let lunghezza = 0;
+    for (const tratto of tratti) {
+      for (let i = 0; i < tratto.length; i++) {
+        if (i === 0) { inchiostro.push(tratto[i]); continue; }
+        const [x0, y0] = tratto[i - 1];
+        const [x1, y1] = tratto[i];
+        const d = Math.hypot(x1 - x0, y1 - y0);
+        lunghezza += d;
+        const n = Math.max(1, Math.floor(d / 4));
+        for (let k = 1; k <= n; k++) {
+          inchiostro.push([x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n]);
         }
       }
-      return accesi;
-    };
+    }
+    if (inchiostro.length < 12) return { ok: false, pochiPunti: true };
+
+    // sagoma del glifo
+    const W = 220, H = 280;
+    const tela = document.createElement('canvas');
+    tela.width = W; tela.height = H;
+    const ctx = tela.getContext('2d');
+    ctx.font = `bold 190px ${FONTE_SCRITTURA}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(glifo, W / 2, H / 2);
+    const dati = ctx.getImageData(0, 0, W, H).data;
+    const sagoma = [];
+    for (let y = 0; y < H; y += 3) {
+      for (let x = 0; x < W; x += 3) {
+        if (dati[(y * W + x) * 4 + 3] > 40) sagoma.push([x, y]);
+      }
+    }
+
     const bbox = (pts) => {
       let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
       for (const [x, y] of pts) {
@@ -626,65 +638,62 @@
       }
       return { x0, y0, w: Math.max(x1 - x0, 4), h: Math.max(y1 - y0, 4) };
     };
+    const boxS = bbox(sagoma);
+    const boxI = bbox(inchiostro);
+    const scala = Math.min(boxS.w / boxI.w, boxS.h / boxI.h);
+    const norm = inchiostro.map(([x, y]) => [
+      boxS.x0 + boxS.w / 2 + (x - boxI.x0 - boxI.w / 2) * scala,
+      boxS.y0 + boxS.h / 2 + (y - boxI.y0 - boxI.h / 2) * scala,
+    ]);
 
-    // sagoma del glifo (sottile) e sagoma "gonfiata" per essere tolleranti
-    const sagoma = nuovaTela();
-    disegnaGlifo(sagoma.getContext('2d'));
-    const puntiSagoma = pixelAccesi(sagoma);
-    const boxSagoma = bbox(puntiSagoma);
-
-    const sagomaLarga = nuovaTela();
-    const ctxLarga = sagomaLarga.getContext('2d');
-    for (let dx = -12; dx <= 12; dx += 12) {
-      for (let dy = -12; dy <= 12; dy += 12) disegnaGlifo(ctxLarga, dx, dy);
-    }
-
-    // riporta i tratti del bambino dentro la sagoma
-    const boxTratto = bbox(punti);
-    const scala = Math.min(boxSagoma.w / boxTratto.w, boxSagoma.h / boxTratto.h);
-    const trasforma = ([x, y]) => [
-      boxSagoma.x0 + boxSagoma.w / 2 + (x - boxTratto.x0 - boxTratto.w / 2) * scala,
-      boxSagoma.y0 + boxSagoma.h / 2 + (y - boxTratto.y0 - boxTratto.h / 2) * scala,
-    ];
-    const disegnaTratti = (ctx, spessore) => {
-      ctx.lineWidth = spessore;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      for (const tratto of tratti) {
-        if (!tratto.length) continue;
-        ctx.beginPath();
-        const [x0, y0] = trasforma(tratto[0]);
-        ctx.moveTo(x0, y0);
-        for (const p of tratto) { const [x, y] = trasforma(p); ctx.lineTo(x, y); }
-        ctx.stroke();
+    // griglie spaziali per cercare i punti vicini in fretta
+    const cella = 8;
+    const inGriglia = (pts) => {
+      const g = new Map();
+      for (const p of pts) {
+        const k = ((p[0] / cella) | 0) + ',' + ((p[1] / cella) | 0);
+        if (!g.has(k)) g.set(k, []);
+        g.get(k).push(p);
       }
+      return g;
+    };
+    const cerca = (griglia, [x, y], raggio) => {
+      const r = Math.ceil(raggio / cella);
+      const cx = (x / cella) | 0, cy = (y / cella) | 0;
+      for (let gx = cx - r; gx <= cx + r; gx++) {
+        for (let gy = cy - r; gy <= cy + r; gy++) {
+          const lista = griglia.get(gx + ',' + gy);
+          if (!lista) continue;
+          for (const [px, py] of lista) {
+            if ((px - x) ** 2 + (py - y) ** 2 <= raggio * raggio) return true;
+          }
+        }
+      }
+      return false;
     };
 
-    const inchiostro = nuovaTela();
-    disegnaTratti(inchiostro.getContext('2d'), 12);
-    const inchiostroLargo = nuovaTela();
-    disegnaTratti(inchiostroLargo.getContext('2d'), 46);
+    const TOLLERANZA_PRECISIONE = 8;   // quanto può sbordare il tratto
+    const TOLLERANZA_COPERTURA = 14;   // metà spessore del glifo + un po' di gioco
 
-    // precisione: quanta scrittura sta sopra la sagoma gonfiata
-    const datiLarga = sagomaLarga.getContext('2d').getImageData(0, 0, W, H).data;
-    const puntiInchiostro = pixelAccesi(inchiostro);
-    let dentro = 0;
-    for (const [x, y] of puntiInchiostro) {
-      if (datiLarga[(y * W + x) * 4 + 3] > 40) dentro++;
-    }
-    const precisione = puntiInchiostro.length ? dentro / puntiInchiostro.length : 0;
+    const grigliaSagoma = inGriglia(sagoma);
+    let vicini = 0;
+    for (const p of norm) if (cerca(grigliaSagoma, p, TOLLERANZA_PRECISIONE)) vicini++;
+    const precisione = vicini / norm.length;
 
-    // copertura: quanta sagoma è stata ripassata dalla scrittura gonfiata
-    const datiInchiostroLargo = inchiostroLargo.getContext('2d').getImageData(0, 0, W, H).data;
+    const grigliaInchiostro = inGriglia(norm);
     let coperti = 0;
-    for (const [x, y] of puntiSagoma) {
-      if (datiInchiostroLargo[(y * W + x) * 4 + 3] > 40) coperti++;
-    }
-    const copertura = puntiSagoma.length ? coperti / puntiSagoma.length : 0;
+    for (const p of sagoma) if (cerca(grigliaInchiostro, p, TOLLERANZA_COPERTURA)) coperti++;
+    const copertura = coperti / sagoma.length;
 
-    // soglie via via più generose ad ogni tentativo (mai frustrare)
-    const soglia = tentativi === 0 ? 0.45 : tentativi === 1 ? 0.4 : 0.32;
-    return { ok: precisione >= soglia && copertura >= soglia, precisione, copertura };
+    // tratto molto più lungo dello scheletro del glifo = scarabocchio
+    const scheletro = (sagoma.length * 9) / 24;
+    const eccesso = (lunghezza * scala) / Math.max(scheletro, 1);
+
+    // soglie via via più generose ad ogni tentativo (mai frustrare),
+    // ma l'eccesso resta sempre un limite
+    const soglie = tentativi === 0 ? [0.80, 0.85] : tentativi === 1 ? [0.70, 0.75] : [0.60, 0.65];
+    const ok = precisione >= soglie[0] && copertura >= soglie[1] && eccesso <= 3.8;
+    return { ok, precisione, copertura, eccesso };
   }
 
   function vaiDettato(idModulo, stelle = 0) {
@@ -695,7 +704,8 @@
 
     const item = casuale(DATA[idModulo].items);
     const glifo = idModulo === 'lettere' ? mostraTesto(item.glyph) : item.glyph;
-    const domanda = `Scrivi: ${item.say}`;
+    // si pronuncia SOLO la lettera o il numero, senza frasi intorno
+    const domanda = item.say;
 
     const fileStelle =
       '⭐'.repeat(stelle) +
