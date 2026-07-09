@@ -23,6 +23,11 @@ npx http-server /path/al/repo -p 8321 -s     # oppure python3 -m http.server
 
 ## Flussi da guidare
 
+0. ONBOARDING (prima schermata, se `impostazioni.onboardingFatto` è falso):
+   `#campo-nome` + `.btn-genere[data-genere=m|f]` (abilita `#btn-inizia`) → home.
+   Genere femmina ⇒ i complimenti non devono MAI contenere "bravo/bravissimo"
+   maschili (usare `lode()`); il nome compare spesso. Nei test: svuotare prima
+   il localStorage o completare sempre l'onboarding.
 1. Home → Numeri → carta → dettaglio (glifo, conteggio emoji, audio) → frecce avanti/indietro.
 2. Home → Lettere → carta A → dettaglio ("A a", "a. A come Ape").
 3. Home → Parole → categoria → parola → dettaglio.
@@ -56,6 +61,10 @@ npx http-server /path/al/repo -p 8321 -s     # oppure python3 -m http.server
    respingono i tracciati densi.
 9. Suono ta-da: spia `AudioContext.prototype.createOscillator` in addInitScript;
    una risposta giusta crea 3 oscillatori.
+10. Statistiche: ogni risposta chiama `registra(attivita, itemId, giusto)` →
+    `localStorage.statistiche` (per attività e per elemento). L'area genitori
+    mostra il blocco Progressi (`.riga-stat.totale`), `#btn-azzera` (reset) e
+    `#btn-modifica-bambino` (rientra nell'onboarding in modifica).
 
 ## Attenzioni
 
