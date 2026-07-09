@@ -26,9 +26,14 @@ npx http-server /path/al/repo -p 8321 -s     # oppure python3 -m http.server
 1. Home → Numeri → carta → dettaglio (glifo, conteggio emoji, audio) → frecce avanti/indietro.
 2. Home → Lettere → carta A → dettaglio ("A a", "a. A come Ape").
 3. Home → Parole → categoria → parola → dettaglio.
-4. Gioco (`#vai-gioco`): il prompt vocale dice il bersaglio ("Trova il numero tre");
+4. Gioco (`#vai-gioco`): il prompt vocale dice il bersaglio ("Trova il numero tre";
+   per le lettere pronuncia SOLO la lettera, es. "emme");
    risposta sbagliata → carta `.sbagliata` disabilitata, nessuna penalità;
-   5 risposte giuste → schermata `.festa`. Attendere ~1,7 s tra i round (delay interno 1,4 s).
+   risposta giusta → compare la mascotte `#mascotte-pop` (sparisce da sola dopo ~1,6 s);
+   5 risposte giuste → schermata `.festa`. Attendere ~1,9 s tra i round (delay interno 1,6 s).
+4b. Gioco "Completa la parola" (`#vai-gioco-parola`, solo in Lettere): tessere `.tessera`
+   con un `.tessera.buco` ("?"); la voce dice la parola; scelta giusta → buco riempito
+   (`.tessera.riempita`) + mascotte. Nota: la parola scritta "orso" viene pronunciata "orsetto".
 5. Parent gate: tap veloce su `#btn-genitori` NON deve aprire; `mouse.down()` + 2,2 s + `mouse.up()` sì.
 6. Impostazioni: cambiare opzione → verificare `localStorage.impostazioni` e l'effetto in UI.
 7. Offline: caricare la pagina, attendere ~1 s (installazione service worker),

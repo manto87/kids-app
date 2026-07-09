@@ -31,7 +31,7 @@ html, body {
 }
 
 body {
-  background: var(--sfondo);
+  background: linear-gradient(180deg, #fdf1df 0%, var(--sfondo) 35%, #f3f7ee 100%) fixed;
   color: var(--testo);
   font-family: "Trebuchet MS", "Segoe UI", "Arial Rounded MT Bold", Arial, sans-serif;
   font-size: 20px;
@@ -234,7 +234,7 @@ button {
   margin: 10px 0 20px;
 }
 
-.gioco-domanda .btn-ripeti {
+.btn-ripeti {
   display: inline-flex;
   align-items: center;
   gap: 14px;
@@ -246,7 +246,7 @@ button {
   font-weight: bold;
 }
 
-.gioco-domanda .btn-ripeti:active { transform: translateY(3px); box-shadow: 0 3px 0 rgba(58,51,48,0.12); }
+.btn-ripeti:active { transform: translateY(3px); box-shadow: 0 3px 0 rgba(58,51,48,0.12); }
 
 .gioco-scelte {
   display: grid;
@@ -357,6 +357,104 @@ button {
 }
 
 .btn-valore.attivo { background: var(--blu-chiaro); border-color: var(--blu); }
+
+/* ---------- mascotte ---------- */
+
+.mascotte-dondola svg { animation: dondola 2.6s ease-in-out infinite; }
+
+#mascotte-pop {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  overflow: hidden;
+}
+
+#mascotte-pop .mascotte-salto {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  animation: sbuca 1.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+#mascotte-pop .coriandolo {
+  position: absolute;
+  top: -50px;
+  font-size: 32px;
+  animation: cade linear forwards;
+}
+
+@keyframes sbuca {
+  0%   { transform: translateX(-50%) translateY(105%); }
+  25%  { transform: translateX(-50%) translateY(0) rotate(-4deg); }
+  45%  { transform: translateX(-50%) translateY(-16px) rotate(4deg); }
+  60%  { transform: translateX(-50%) translateY(0) rotate(-3deg); }
+  80%  { transform: translateX(-50%) translateY(0) rotate(0deg); }
+  100% { transform: translateX(-50%) translateY(110%); }
+}
+
+@keyframes cade {
+  from { transform: translateY(0) rotate(0deg); opacity: 1; }
+  to   { transform: translateY(105vh) rotate(240deg); opacity: 0.9; }
+}
+
+@keyframes dondola {
+  0%, 100% { transform: rotate(-3deg); }
+  50%      { transform: rotate(3deg); }
+}
+
+/* ---------- gioco "completa la parola" ---------- */
+
+.parola-zona {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin: 6px 0 18px;
+}
+
+.parola-figura { font-size: clamp(56px, 16vw, 92px); line-height: 1; }
+
+.parola-tessere {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.tessera {
+  min-width: 52px;
+  height: 64px;
+  padding: 0 6px;
+  background: var(--carta);
+  border: 4px solid var(--verde-chiaro);
+  border-radius: 16px;
+  box-shadow: var(--ombra);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 38px;
+  font-weight: bold;
+}
+
+.tessera.buco {
+  background: var(--giallo);
+  border-color: var(--arancio);
+  color: #8c6a1d;
+  animation: pulsa 1.4s ease-in-out infinite;
+}
+
+.tessera.riempita {
+  background: var(--verde-chiaro);
+  border-color: var(--verde);
+  animation: salta 0.6s ease;
+}
+
+@keyframes pulsa {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.12); }
+}
 
 /* ---------- animazioni ---------- */
 
