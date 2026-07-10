@@ -10,9 +10,9 @@ schermata home del telefono o del tablet come una vera app e funziona anche
 ## Cosa contiene
 
 - **🔢 Numeri** — da 1 a 10, con il numero grande, gli oggetti da contare e la voce che li pronuncia.
-- **🔤 Lettere** — l'alfabeto italiano (21 lettere), ognuna con una parola e un'immagine ("A come Ape 🐝").
+- **🔤 Lettere** — l'alfabeto italiano (21 lettere), ognuna con una parola e un'immagine ("A come Ape 🐝"). Nei momenti di insegnamento si sente il **suono** della lettera ("mmm", non "emme"), come si insegna oggi a scuola — più naturale da collegare alla lettura.
 - **🗣️ Parole** — prime parole divise in categorie semplici: Famiglia, Animali, Cibo, Oggetti.
-- **🎮 Gioco "Ascolta e trova"** — in ogni sezione, con il pulsante sempre in cima: la voce chiede un elemento e il bambino lo tocca tra 2 (o 3) scelte grandi (per le lettere la voce pronuncia solo la lettera). Nelle Parole le scelte mostrano prima solo la parola scritta: le figure compaiono come aiuto al terzo tentativo. Si vincono 5 stelle e si festeggia. Nessun tempo limite, nessuna penalità.
+- **🎮 Gioco "Ascolta e trova"** — in ogni sezione, con il pulsante sempre in cima: la voce chiede un elemento e il bambino lo tocca tra 2 (o 3) scelte grandi (per le lettere la voce pronuncia il suono). Nelle Parole le scelte mostrano prima solo la parola scritta: le figure compaiono come aiuto al terzo tentativo. Si vincono 5 stelle e si festeggia. Nessun tempo limite, nessuna penalità. Lo stesso numero/lettera/parola non si ripete mai per 2-3 round di fila, e dopo un complimento c'è una pausa naturale (si aspetta che la voce finisca di parlare) prima della domanda successiva.
 - **🧩 Gioco "Completa la parola"** — nella sezione Lettere: una parola con una lettera nascosta, si ascolta la parola e si sceglie la lettera mancante.
 - **🦊 Gino, la mascotte** — salta fuori e festeggia con i coriandoli (e un "ta-da" musicale) a ogni risposta giusta.
 - **✍️ Scrivi (dettato)** — la voce detta un numero o una lettera e il bambino la scrive col dito sulla lavagna. Se non riesce, aiuti progressivi: compare la traccia grigia da ricalcare (poi più scura) e il controllo diventa via via più generoso. Non conta dove e quanto grande si scrive: conta la forma.

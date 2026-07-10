@@ -36,13 +36,18 @@ npx http-server /path/al/repo -p 8321 -s     # oppure python3 -m http.server
 2. Home → Lettere → carta A → dettaglio ("A a", "a. A come Ape").
 3. Home → Parole → categoria → parola → dettaglio.
 4. Gioco (`#vai-gioco`, pulsante SOPRA la griglia): il prompt vocale dice il bersaglio
-   ("Trova il numero tre"; per le lettere pronuncia SOLO la lettera, es. "emme");
+   ("Trova il numero tre"; per le lettere pronuncia il SUONO fonetico, es. "mmm" per
+   la M, non il nome "emme" — vedi punto 12);
    nelle PAROLE le scelte mostrano solo `.parola-scritta` (le `.figura` sono hidden),
    le carte sbagliate NON si disabilitano (classe `.scossa` temporanea) e dopo
    2 errori le figure diventano visibili;
    risposta sbagliata → carta `.sbagliata` disabilitata, nessuna penalità;
    risposta giusta → compare la mascotte `#mascotte-pop` (sparisce da sola dopo ~1,6 s);
-   5 risposte giuste → schermata `.festa`. Attendere ~1,9 s tra i round (delay interno 1,6 s).
+   5 risposte giuste → schermata `.festa`. Il round successivo NON parte con un
+   ritardo fisso: `parlaEPoi()` aspetta la fine vera del complimento (evento
+   `onend`/`onerror` dell'utterance) + `PAUSA_DOPO_LODE` (700ms) prima di richiamare
+   il round dopo — nei test conviene attendere l'evento con `page.waitForFunction`
+   invece di un `waitForTimeout` fisso (vedi punto 13).
 4b. Gioco "Completa la parola" (`#vai-gioco-parola`, solo in Lettere): tessere `.tessera`
    con un `.tessera.buco` ("?"); la voce dice la parola; scelta giusta → buco riempito
    (`.tessera.riempita`) + mascotte. Nota: la parola scritta "orso" viene pronunciata "orsetto".
@@ -78,6 +83,21 @@ npx http-server /path/al/repo -p 8321 -s     # oppure python3 -m http.server
     quando ON il controllo `[data-opzione="numScelte"]` è nascosto. NB nei test: il round
     successivo si renderizza dopo ~1600ms (`dopo()`), quindi attendere prima di leggere
     le scelte. Test dedicato: `scratchpad/verify-adattiva.js`.
+12. Anti-ripetizione: `scegliBersaglio` tiene in `storiaRecente[attivita]` gli ultimi
+    `MEMORIA_RECENTI=3` id proposti (numeri/lettere/parole in Trova e Scrivi, e le
+    parole in Completa via la chiave `'completa-parola'`) e li esclude dal pool prima
+    di scegliere — stesso bersaglio non torna prima di 4 round, sia con difficoltà
+    adattiva sia manuale. Se il pool residuo è vuoto il vincolo si rilassa. Verificato
+    con `scratchpad/verify-fix3.js`: 14 round consecutivi, 0 violazioni.
+13. Lettere: ogni voce di `DATA.lettere.items` ha `say` (nome tradizionale, es. "emme" —
+    usato SOLO per `aria-label`, accessibilità) e `suono` (il suono fonetico, es. "mmm" —
+    usato in tutti i punti dove si INSEGNA la lettera: gioco Trova, dettaglio, dettato).
+    Le consonanti prolungabili sono ripetute 3 volte (mmm, nnn, fff, lll, rrr, sss, vvv,
+    zzz) per farle "allungare" dalla sintesi vocale; le occlusive (b,c,d,g,p,q,t) restano
+    una lettera sola (non prolungabili, resa non garantita su ogni voce/dispositivo);
+    H resta "acca" (muta, nessun suono da insegnare). Verificare leggendo
+    `DATA.lettere.items` via `page.evaluate` e controllando il flusso reale in
+    `vaiDettaglio`/`vaiGioco`/`vaiDettato` (`scratchpad/verify-fix3.js`).
 
 ## Attenzioni
 

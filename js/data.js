@@ -27,28 +27,39 @@ const DATA = {
     titolo: 'Lettere',
     emoji: '🔤',
     colore: 'verde',
+    /* say = nome tradizionale della lettera (usato solo per l'aria-label,
+       cioè per chi naviga con uno screen reader).
+       suono = il SUONO fonetico della lettera, quello che oggi si insegna
+       per primo a scuola (metodo fonematico, consigliato anche per bambini
+       con difficoltà di apprendimento): "mmm" invece di "emme", "fff"
+       invece di "effe". Le consonanti che si possono "allungare" (m, n, f,
+       l, r, s, v, z) si scrivono ripetute per farle pronunciare così dalla
+       sintesi vocale; le occlusive (b, c, d, g, p, q, t) restano una sola
+       lettera perché non sono prolungabili — la resa dipende un po' dalla
+       voce del dispositivo. La H è muta, si insegna il nome perché un
+       suono da insegnare non c'è. */
     items: [
-      { id: 'lA', glyph: 'A', say: 'a',    parola: 'Ape',      emoji: '🐝' },
-      { id: 'lB', glyph: 'B', say: 'bi',   parola: 'Barca',    emoji: '⛵' },
-      { id: 'lC', glyph: 'C', say: 'ci',   parola: 'Cane',     emoji: '🐶' },
-      { id: 'lD', glyph: 'D', say: 'di',   parola: 'Dado',     emoji: '🎲' },
-      { id: 'lE', glyph: 'E', say: 'e',    parola: 'Elefante', emoji: '🐘' },
-      { id: 'lF', glyph: 'F', say: 'effe', parola: 'Fiore',    emoji: '🌸' },
-      { id: 'lG', glyph: 'G', say: 'gi',   parola: 'Gatto',    emoji: '🐱' },
-      { id: 'lH', glyph: 'H', say: 'acca', parola: 'Hotel',    emoji: '🏨' },
-      { id: 'lI', glyph: 'I', say: 'i',    parola: 'Isola',    emoji: '🏝️' },
-      { id: 'lL', glyph: 'L', say: 'elle', parola: 'Luna',     emoji: '🌙' },
-      { id: 'lM', glyph: 'M', say: 'emme', parola: 'Mela',     emoji: '🍎' },
-      { id: 'lN', glyph: 'N', say: 'enne', parola: 'Nave',     emoji: '🚢' },
-      { id: 'lO', glyph: 'O', say: 'o',    parola: 'Orso',     emoji: '🐻' },
-      { id: 'lP', glyph: 'P', say: 'pi',   parola: 'Palla',    emoji: '⚽' },
-      { id: 'lQ', glyph: 'Q', say: 'cu',   parola: 'Quadro',   emoji: '🖼️' },
-      { id: 'lR', glyph: 'R', say: 'erre', parola: 'Rana',     emoji: '🐸' },
-      { id: 'lS', glyph: 'S', say: 'esse', parola: 'Sole',     emoji: '☀️' },
-      { id: 'lT', glyph: 'T', say: 'ti',   parola: 'Treno',    emoji: '🚂' },
-      { id: 'lU', glyph: 'U', say: 'u',    parola: 'Uva',      emoji: '🍇' },
-      { id: 'lV', glyph: 'V', say: 'vu',   parola: 'Vulcano',  emoji: '🌋' },
-      { id: 'lZ', glyph: 'Z', say: 'zeta', parola: 'Zaino',    emoji: '🎒' },
+      { id: 'lA', glyph: 'A', say: 'a',    suono: 'a',    parola: 'Ape',      emoji: '🐝' },
+      { id: 'lB', glyph: 'B', say: 'bi',   suono: 'b',    parola: 'Barca',    emoji: '⛵' },
+      { id: 'lC', glyph: 'C', say: 'ci',   suono: 'c',    parola: 'Cane',     emoji: '🐶' },
+      { id: 'lD', glyph: 'D', say: 'di',   suono: 'd',    parola: 'Dado',     emoji: '🎲' },
+      { id: 'lE', glyph: 'E', say: 'e',    suono: 'e',    parola: 'Elefante', emoji: '🐘' },
+      { id: 'lF', glyph: 'F', say: 'effe', suono: 'fff',  parola: 'Fiore',    emoji: '🌸' },
+      { id: 'lG', glyph: 'G', say: 'gi',   suono: 'g',    parola: 'Gatto',    emoji: '🐱' },
+      { id: 'lH', glyph: 'H', say: 'acca', suono: 'acca', parola: 'Hotel',    emoji: '🏨' },
+      { id: 'lI', glyph: 'I', say: 'i',    suono: 'i',    parola: 'Isola',    emoji: '🏝️' },
+      { id: 'lL', glyph: 'L', say: 'elle', suono: 'lll',  parola: 'Luna',     emoji: '🌙' },
+      { id: 'lM', glyph: 'M', say: 'emme', suono: 'mmm',  parola: 'Mela',     emoji: '🍎' },
+      { id: 'lN', glyph: 'N', say: 'enne', suono: 'nnn',  parola: 'Nave',     emoji: '🚢' },
+      { id: 'lO', glyph: 'O', say: 'o',    suono: 'o',    parola: 'Orso',     emoji: '🐻' },
+      { id: 'lP', glyph: 'P', say: 'pi',   suono: 'p',    parola: 'Palla',    emoji: '⚽' },
+      { id: 'lQ', glyph: 'Q', say: 'cu',   suono: 'q',    parola: 'Quadro',   emoji: '🖼️' },
+      { id: 'lR', glyph: 'R', say: 'erre', suono: 'rrr',  parola: 'Rana',     emoji: '🐸' },
+      { id: 'lS', glyph: 'S', say: 'esse', suono: 'sss',  parola: 'Sole',     emoji: '☀️' },
+      { id: 'lT', glyph: 'T', say: 'ti',   suono: 't',    parola: 'Treno',    emoji: '🚂' },
+      { id: 'lU', glyph: 'U', say: 'u',    suono: 'u',    parola: 'Uva',      emoji: '🍇' },
+      { id: 'lV', glyph: 'V', say: 'vu',   suono: 'vvv',  parola: 'Vulcano',  emoji: '🌋' },
+      { id: 'lZ', glyph: 'Z', say: 'zeta', suono: 'zzz',  parola: 'Zaino',    emoji: '🎒' },
     ],
   },
 
