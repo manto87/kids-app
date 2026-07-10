@@ -178,20 +178,40 @@
     return (g + 1) / (g + s + 2);
   }
 
-  // scelta pesata sui punti deboli (bilanciata); evita di ripetere l'ultimo
-  let ultimoBersaglio = null;
+  /* Memoria degli ultimi bersagli proposti, per attività: evita che lo
+     stesso numero/lettera/parola torni 2-3 volte di fila. Funziona sia
+     con la difficoltà adattiva sia con quella manuale. */
+  const MEMORIA_RECENTI = 3;
+  let storiaRecente = {};
+
+  function segnaRecente(attivita, id) {
+    const r = storiaRecente[attivita] || (storiaRecente[attivita] = []);
+    r.push(id);
+    while (r.length > MEMORIA_RECENTI) r.shift();
+  }
+
+  // scelta pesata sui punti deboli se adattiva, altrimenti casuale;
+  // in entrambi i casi evita gli ultimi bersagli già proposti (se il
+  // pool è troppo piccolo il vincolo si rilassa pur di avere una scelta)
   function scegliBersaglio(pool, attivita) {
-    if (!P().adattiva) return casuale(pool);
-    const candidati = pool.length > 1 ? pool.filter(x => x.id !== ultimoBersaglio) : pool;
-    const pesi = candidati.map(x => 1 - padronanza(attivita, x.id) + 0.15);
-    const totale = pesi.reduce((s, w) => s + w, 0);
-    let soglia = Math.random() * totale;
-    let scelto = candidati[candidati.length - 1];
-    for (let i = 0; i < candidati.length; i++) {
-      soglia -= pesi[i];
-      if (soglia <= 0) { scelto = candidati[i]; break; }
+    const evitare = storiaRecente[attivita] || [];
+    let candidati = pool.filter(x => !evitare.includes(x.id));
+    if (!candidati.length) candidati = pool;
+
+    let scelto;
+    if (P().adattiva) {
+      const pesi = candidati.map(x => 1 - padronanza(attivita, x.id) + 0.15);
+      const totale = pesi.reduce((s, w) => s + w, 0);
+      let soglia = Math.random() * totale;
+      scelto = candidati[candidati.length - 1];
+      for (let i = 0; i < candidati.length; i++) {
+        soglia -= pesi[i];
+        if (soglia <= 0) { scelto = candidati[i]; break; }
+      }
+    } else {
+      scelto = casuale(candidati);
     }
-    ultimoBersaglio = scelto.id;
+    segnaRecente(attivita, scelto.id);
     return scelto;
   }
 
@@ -245,11 +265,17 @@
     speechSynthesis.onvoiceschanged = scegliVoce;
   }
 
-  /* parla(testo, { rate, pitch, festa })
+  /* parla(testo, { rate, pitch, festa, alFine })
      - festa: consegna allegra ed espressiva (voce più acuta e vivace),
-       usata per i complimenti così suonano davvero entusiasti. */
+       usata per i complimenti così suonano davvero entusiasti.
+     - alFine: richiamata quando la frase ha finito di essere pronunciata
+       (o subito, se l'audio è spento) — permette di aspettare la fine
+       vera del parlato invece di indovinare un tempo fisso. */
   function parla(testo, opzioni = {}) {
-    if (!dispositivo.audio || !('speechSynthesis' in window)) return;
+    if (!dispositivo.audio || !('speechSynthesis' in window)) {
+      if (opzioni.alFine) opzioni.alFine();
+      return;
+    }
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(testo);
     u.lang = 'it-IT';
@@ -262,7 +288,17 @@
       u.rate = opzioni.rate || dispositivo.velocita;
       u.pitch = opzioni.pitch || 1.15;
     }
+    if (opzioni.alFine) { u.onend = opzioni.alFine; u.onerror = opzioni.alFine; }
     speechSynthesis.speak(u);
+  }
+
+  const PAUSA_DOPO_LODE = 700;  // ms di silenzio dopo il complimento, prima della domanda dopo
+
+  /* Come parla(), ma aspetta la fine vera del complimento più un momento
+     di silenzio prima di richiamare fn — così la domanda successiva non
+     parte incollata (o peggio, sopra) al complimento appena detto. */
+  function parlaEPoi(testo, opzioni, fn) {
+    parla(testo, { ...opzioni, alFine: () => dopo(PAUSA_DOPO_LODE, fn) });
   }
 
   function casuale(lista) {
@@ -661,7 +697,7 @@
         <div class="glifone">${item.glyph} ${item.glyph.toLowerCase()}</div>
         <div class="figura">${item.emoji}</div>
         <div class="sotto">${mostraTesto(item.parola)}</div>`;
-      daDire = `${item.say}. ${item.glyph} come ${item.parola}`;
+      daDire = `${item.suono}. ${item.glyph} come ${item.parola}`;
     } else {
       contenuto = `
         <div class="figura">${item.emoji}</div>
@@ -715,10 +751,10 @@
     });
     const scelte = [bersaglio, ...distrattori].sort(() => Math.random() - 0.5);
 
-    // per le lettere si pronuncia SOLO la lettera, senza frasi intorno
+    // per le lettere si pronuncia il SUONO (metodo fonematico), non il nome
     const domanda =
       idModulo === 'numeri' ? `Trova il numero ${bersaglio.say}` :
-      idModulo === 'lettere' ? bersaglio.say :
+      idModulo === 'lettere' ? bersaglio.suono :
       `Trova: ${bersaglio.say}`;
 
     const carte = scelte.map(s => {
@@ -764,8 +800,7 @@
           registra('trova-' + idModulo, bersaglio.id, true);
           carta.classList.add('giusta');
           festeggiaMascotte();
-          parla(lode(), { festa: true });
-          dopo(1600, () => vaiGioco(idModulo, pool, indietro, stelle + 1));
+          parlaEPoi(lode(), { festa: true }, () => vaiGioco(idModulo, pool, indietro, stelle + 1));
           return;
         }
         errori++;
@@ -827,7 +862,7 @@
       return;
     }
 
-    const parola = casuale(tutteLeParole());
+    const parola = scegliBersaglio(tutteLeParole(), 'completa-parola');
     const lettere = parola.glyph.split('');
     // si nasconde solo una lettera "semplice" (niente accentate)
     const indiciValidi = lettere
@@ -903,8 +938,7 @@
           tessera.textContent = mostraTesto(letteraGiusta);
           tessera.classList.add('riempita');
           festeggiaMascotte();
-          parla(`${lode()} ${parola.say}!`, { festa: true });
-          dopo(1900, () => vaiGiocoParola(stelle + 1));
+          parlaEPoi(`${lode()} ${parola.say}!`, { festa: true }, () => vaiGiocoParola(stelle + 1));
         } else {
           registra('completa', letteraGiusta, false);
           carta.classList.add('sbagliata');
@@ -1068,8 +1102,9 @@
 
     const item = scegliBersaglio(DATA[idModulo].items, 'scrivi-' + idModulo);
     const glifo = idModulo === 'lettere' ? mostraTesto(item.glyph) : item.glyph;
-    // si pronuncia SOLO la lettera o il numero, senza frasi intorno
-    const domanda = item.say;
+    // si pronuncia SOLO la lettera o il numero, senza frasi intorno;
+    // per le lettere si usa il SUONO (metodo fonematico), non il nome
+    const parlato = idModulo === 'lettere' ? item.suono : item.say;
 
     const fileStelle =
       '⭐'.repeat(stelle) +
@@ -1093,8 +1128,8 @@
     `);
 
     collegaCasa();
-    parla(domanda);
-    document.getElementById('btn-domanda').addEventListener('click', () => parla(domanda));
+    parla(parlato);
+    document.getElementById('btn-domanda').addEventListener('click', () => parla(parlato));
 
     /* --- lavagna: disegno col dito --- */
     const canvas = document.getElementById('lavagna-canvas');
@@ -1152,7 +1187,7 @@
     document.getElementById('btn-cancella').addEventListener('click', pulisci);
     document.getElementById('btn-aiuto').addEventListener('click', () => {
       mostraAiuto(false);
-      parla(`Ricalca con il dito. ${item.say}`);
+      parla(`Ricalca con il dito. ${parlato}`);
     });
 
     /* --- controllo con aiuti progressivi --- */
@@ -1168,8 +1203,7 @@
         risolto = true;
         registra('scrivi-' + idModulo, item.id, true);
         festeggiaMascotte();
-        parla(`${lode()} ${item.say}!`, { festa: true });
-        dopo(1900, () => vaiDettato(idModulo, stelle + 1));
+        parlaEPoi(`${lode()} ${parlato}!`, { festa: true }, () => vaiDettato(idModulo, stelle + 1));
         return;
       }
 
@@ -1184,8 +1218,8 @@
       mostraAiuto(tentativi >= 2);
       pulisci();
       parla(tentativi === 1
-        ? `Quasi! Ricalca la traccia grigia. ${item.say}`
-        : `Prova ancora, segui la traccia. ${item.say}`);
+        ? `Quasi! Ricalca la traccia grigia. ${parlato}`
+        : `Prova ancora, segui la traccia. ${parlato}`);
     });
   }
 
