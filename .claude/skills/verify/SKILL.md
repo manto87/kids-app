@@ -23,7 +23,8 @@ npx http-server /path/al/repo -p 8321 -s     # oppure python3 -m http.server
 
 ## Flussi da guidare
 
-0. PROFILI: dati in `localStorage.profili` = `{profili:[{id,nome,genere,numScelte,maiuscole,statistiche}], attivo}`;
+0. PROFILI: dati in `localStorage.profili` = `{profili:[{id,nome,genere,numScelte,maiuscole,
+   adattiva,livelli,recenti,statistiche,progressoGlobale}], attivo}`;
    voce/suoni in `localStorage.dispositivo`. Migrazione automatica dal vecchio
    `impostazioni`/`statistiche` a un profilo. Primo avvio (nessun profilo):
    form `#campo-nome` + `.btn-genere[data-genere=m|f]` (abilita `#btn-inizia`) → home.
@@ -36,18 +37,19 @@ npx http-server /path/al/repo -p 8321 -s     # oppure python3 -m http.server
 2. Home → Lettere → carta A → dettaglio ("A a", "a. A come Ape").
 3. Home → Parole → categoria → parola → dettaglio.
 4. Gioco (`#vai-gioco`, pulsante SOPRA la griglia): il prompt vocale dice il bersaglio
-   ("Trova il numero tre"; per le lettere pronuncia il SUONO fonetico, es. "mmm" per
-   la M, non il nome "emme" — vedi punto 12);
+   ("Trova il numero tre"; per le lettere pronuncia il SUONO fonetico, es. "mm" per
+   la M, non il nome "emme" — vedi punto 13);
    nelle PAROLE le scelte mostrano solo `.parola-scritta` (le `.figura` sono hidden),
    le carte sbagliate NON si disabilitano (classe `.scossa` temporanea) e dopo
    2 errori le figure diventano visibili;
    risposta sbagliata → carta `.sbagliata` disabilitata, nessuna penalità;
    risposta giusta → compare la mascotte `#mascotte-pop` (sparisce da sola dopo ~1,6 s);
-   5 risposte giuste → schermata `.festa`. Il round successivo NON parte con un
-   ritardo fisso: `parlaEPoi()` aspetta la fine vera del complimento (evento
-   `onend`/`onerror` dell'utterance) + `PAUSA_DOPO_LODE` (700ms) prima di richiamare
-   il round dopo — nei test conviene attendere l'evento con `page.waitForFunction`
-   invece di un `waitForTimeout` fisso (vedi punto 13).
+   ogni 10 risposte giuste GLOBALI (qualsiasi attività, non solo questa) → schermata
+   `.festa` "Livello superato" (vedi punto 14, ha sostituito le vecchie 5 stelle).
+   Il round successivo NON parte con un ritardo fisso: `parlaEPoi()` aspetta la fine
+   vera del complimento (evento `onend`/`onerror` dell'utterance) + `PAUSA_DOPO_LODE`
+   (700ms) prima di richiamare il round dopo — nei test conviene attendere l'evento
+   con `page.waitForFunction` invece di un `waitForTimeout` fisso (vedi punto 12).
 4b. Gioco "Completa la parola" (`#vai-gioco-parola`, solo in Lettere): tessere `.tessera`
    con un `.tessera.buco` ("?"); la voce dice la parola; scelta giusta → buco riempito
    (`.tessera.riempita`) + mascotte. Nota: la parola scritta "orso" viene pronunciata "orsetto".
@@ -90,14 +92,39 @@ npx http-server /path/al/repo -p 8321 -s     # oppure python3 -m http.server
     adattiva sia manuale. Se il pool residuo è vuoto il vincolo si rilassa. Verificato
     con `scratchpad/verify-fix3.js`: 14 round consecutivi, 0 violazioni.
 13. Lettere: ogni voce di `DATA.lettere.items` ha `say` (nome tradizionale, es. "emme" —
-    usato SOLO per `aria-label`, accessibilità) e `suono` (il suono fonetico, es. "mmm" —
+    usato SOLO per `aria-label`, accessibilità) e `suono` (il suono fonetico, es. "mm" —
     usato in tutti i punti dove si INSEGNA la lettera: gioco Trova, dettaglio, dettato).
-    Le consonanti prolungabili sono ripetute 3 volte (mmm, nnn, fff, lll, rrr, sss, vvv,
-    zzz) per farle "allungare" dalla sintesi vocale; le occlusive (b,c,d,g,p,q,t) restano
-    una lettera sola (non prolungabili, resa non garantita su ogni voce/dispositivo);
-    H resta "acca" (muta, nessun suono da insegnare). Verificare leggendo
-    `DATA.lettere.items` via `page.evaluate` e controllando il flusso reale in
-    `vaiDettaglio`/`vaiGioco`/`vaiDettato` (`scratchpad/verify-fix3.js`).
+    Le consonanti prolungabili sono ripetute 2 volte (mm, nn, ff, ll, rr, ss, vv, zz;
+    non 3 — la tripla ripetizione è stata provata e scartata, suonava male); le occlusive
+    (b,c,d,g,p,q,t) restano una lettera sola (non prolungabili in alcun modo). Tutte le
+    pronunce del *suono* (non del nome) usano `RATE_SUONO_LETTERA=0.42` (molto più lento
+    della lettura normale) passato esplicitamente a `parla(testo, {rate:...})` nei 3 punti
+    di chiamata (`vaiGioco`, `vaiDettaglio`, `vaiDettato`) — la lettura normale invece usa
+    `dispositivo.velocita`. H resta "acca" (muta, nessun suono da insegnare). Verificare
+    leggendo `DATA.lettere.items` via `page.evaluate`, controllando il flusso reale in
+    `vaiDettaglio`/`vaiGioco`/`vaiDettato`, e spiando `rate`/`pitch` delle utterance create
+    (`scratchpad/verify-fix3.js`, `scratchpad/verify-voce.js`).
+14. Livello di Gino (sostituisce le vecchie "5 stelle"): un traguardo GLOBALE per
+    bambino, non per attività — `profilo.progressoGlobale` cresce di 1 a OGNI risposta
+    giusta in QUALSIASI gioco (mai azzerato). `SUCCESSI_PER_LIVELLO=10`; `livelloGlobale()`
+    e `versoProssimoLivello()` derivano livello e percentuale. Barra `.barra-livello`
+    (mini-Gino + `.livello-numero` + `.barra-progresso .riempimento` con `width` in %)
+    al posto della vecchia fila di stelle, in cima ai 3 giochi. Ogni 10 giuste →
+    `vaiLivelloSuperato(riparti, livello)`: stessa struttura `.festa`/`#btn-ancora`/
+    `#btn-fine` di prima, ma `h2` ora è "Livello N!" e, se questo livello sblocca un
+    accessorio nuovo (`ACCESSORI_GINO`: bandana@2, occhiali@3, mantello@4, corona@5,
+    bacchetta@6), compare anche `.festa .sbloccato`. `mascotte(pose, size, accessori)`
+    accetta un array di chiavi accessorio e le disegna addosso — accumulate per sempre
+    (`accessoriSbloccati(livello)` = tutte quelle con soglia raggiunta). Sistema
+    INDIPENDENTE dalla difficoltà adattiva del punto 11 (quella è per attività e regola
+    la sfida; questa è globale e regola solo il traguardo/festeggiamento). `registra()`
+    ora ritorna `true` se la risposta ha fatto scattare un livello — usarlo per decidere
+    se il prossimo round deve passare da `vaiLivelloSuperato` o direttamente al gioco.
+    Verificare con `scratchpad/verify.js` (10 round → livello 2 + sblocco bandana) e
+    `scratchpad/verify-livelli.js` (livelli alti, tutti gli accessori insieme via
+    `progressoGlobale` impostato direttamente in `localStorage` per non dover rigiocare
+    decine di round — attenzione: dev'essere un multiplo di 10 MENO 1 prima dell'ultima
+    risposta giusta, es. 69 per arrivare a livello 8 con quella risposta).
 
 ## Attenzioni
 

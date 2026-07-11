@@ -10,22 +10,22 @@ schermata home del telefono o del tablet come una vera app e funziona anche
 ## Cosa contiene
 
 - **🔢 Numeri** — da 1 a 10, con il numero grande, gli oggetti da contare e la voce che li pronuncia.
-- **🔤 Lettere** — l'alfabeto italiano (21 lettere), ognuna con una parola e un'immagine ("A come Ape 🐝"). Nei momenti di insegnamento si sente il **suono** della lettera ("mmm", non "emme"), come si insegna oggi a scuola — più naturale da collegare alla lettura.
+- **🔤 Lettere** — l'alfabeto italiano (21 lettere), ognuna con una parola e un'immagine ("A come Ape 🐝"). Nei momenti di insegnamento si sente il **suono** della lettera ("mm", non "emme"), come si insegna oggi a scuola — più naturale da collegare alla lettura, pronunciato molto lentamente per essere ben percepibile.
 - **🗣️ Parole** — prime parole divise in categorie semplici: Famiglia, Animali, Cibo, Oggetti.
-- **🎮 Gioco "Ascolta e trova"** — in ogni sezione, con il pulsante sempre in cima: la voce chiede un elemento e il bambino lo tocca tra 2 (o 3) scelte grandi (per le lettere la voce pronuncia il suono). Nelle Parole le scelte mostrano prima solo la parola scritta: le figure compaiono come aiuto al terzo tentativo. Si vincono 5 stelle e si festeggia. Nessun tempo limite, nessuna penalità. Lo stesso numero/lettera/parola non si ripete mai per 2-3 round di fila, e dopo un complimento c'è una pausa naturale (si aspetta che la voce finisca di parlare) prima della domanda successiva.
+- **🎮 Gioco "Ascolta e trova"** — in ogni sezione, con il pulsante sempre in cima: la voce chiede un elemento e il bambino lo tocca tra 2 (o 3) scelte grandi (per le lettere la voce pronuncia il suono). Nelle Parole le scelte mostrano prima solo la parola scritta: le figure compaiono come aiuto al terzo tentativo. Nessun tempo limite, nessuna penalità. Lo stesso numero/lettera/parola non si ripete mai per 2-3 round di fila, e dopo un complimento c'è una pausa naturale (si aspetta che la voce finisca di parlare) prima della domanda successiva.
 - **🧩 Gioco "Completa la parola"** — nella sezione Lettere: una parola con una lettera nascosta, si ascolta la parola e si sceglie la lettera mancante.
-- **🦊 Gino, la mascotte** — salta fuori e festeggia con i coriandoli (e un "ta-da" musicale) a ogni risposta giusta.
+- **🦊 Gino, la mascotte, sale di livello** — un traguardo globale per bambino: ogni 10 risposte giuste in QUALSIASI gioco Gino sale di livello, balla ed esce festante con i coriandoli (e un "ta-da" musicale). Ai primi livelli sblocca accessori che restano suoi per sempre — bandana, occhiali da sole, mantello da supereroe, corona, bacchetta magica — un po' come i personaggi di Duolingo. Una barra di progresso con la miniatura di Gino (già vestito) mostra quanto manca al prossimo livello, al posto delle vecchie stelle.
 - **✍️ Scrivi (dettato)** — la voce detta un numero o una lettera e il bambino la scrive col dito sulla lavagna. Se non riesce, aiuti progressivi: compare la traccia grigia da ricalcare (poi più scura) e il controllo diventa via via più generoso. Non conta dove e quanto grande si scrive: conta la forma.
 - **👦👧 Più bambini** — ogni bambino ha il suo profilo (nome, genere, difficoltà) e i **suoi** progressi. Dall'area genitori si sceglie chi gioca, si aggiunge un nuovo bambino o si modifica/elimina un profilo. I profili restano salvati sul dispositivo.
 - **👋 Nome e genere** — inseriti al primo avvio; i complimenti sono personalizzati e corretti al maschile/femminile ("Brava Sofia!", "Bravissimo Marco!").
-- **📊 Progressi per bambino** — l'app registra risposte giuste e sbagliate per ogni attività, separatamente per ciascun bambino; i genitori li vedono nell'area riservata (con azzeramento).
-- **📈 Difficoltà adattiva** — attiva di default (spegnibile dal genitore): ogni attività ha un livello 1→3 che sale dove il bambino è costantemente bravo e riscende se fatica. Ai livelli alti aumentano le scelte (2→3) e compaiono distrattori insidiosi (6 vs 9, b vs d). La scelta di cosa proporre è bilanciata: allena più spesso i punti deboli.
+- **📊 Progressi per bambino** — l'app registra risposte giuste e sbagliate per ogni attività, separatamente per ciascun bambino; i genitori li vedono nell'area riservata (con azzeramento — il livello di Gino e i suoi accessori restano invece per sempre, sono un traguardo, non una statistica).
+- **📈 Difficoltà adattiva** — attiva di default (spegnibile dal genitore): ogni attività ha un livello 1→3 che sale dove il bambino è costantemente bravo e riscende se fatica. Ai livelli alti aumentano le scelte (2→3) e compaiono distrattori insidiosi (6 vs 9, b vs d). La scelta di cosa proporre è bilanciata: allena più spesso i punti deboli. (È un sistema diverso e indipendente dal livello di Gino: quello misura *quanto* è impegnativo il gioco, questo *quanto* il bambino ha giocato in totale.)
 
 ## Progettata per bambini con deficit cognitivo
 
 - **Un solo compito per schermata**, navigazione sempre identica (🏠 in alto a sinistra).
 - **Pulsanti molto grandi** e ben distanziati, alto contrasto, poche distrazioni.
-- **Audio prima di tutto**: ogni elemento viene pronunciato con voce italiana lenta e chiara (sintesi vocale del dispositivo).
+- **Audio prima di tutto**: ogni elemento viene pronunciato con voce italiana lenta e chiara (sintesi vocale del dispositivo), con una pausa naturale tra un complimento e la domanda successiva — mai una parola sopra l'altra.
 - **Solo rinforzo positivo**: la risposta sbagliata si spegne con dolcezza e si riprova subito; niente timer, punteggi negativi o suoni bruschi.
 - **Animazioni delicate**, rispettano `prefers-reduced-motion`.
 - **Area genitori** protetta (si apre tenendo premuto ⚙️ per 2 secondi) per adattare l'app al bambino:
