@@ -24,15 +24,17 @@
     numScelte: 2,        // scelte nel gioco (usato solo se adattiva è spenta)
     maiuscole: true,     // lettere/parole in MAIUSCOLO
     adattiva: true,      // difficoltà che sale/scende da sola
-    livelli: {},         // livello (1..3) per attività
+    livelli: {},         // livello (1..3) per attività, usato dalla difficoltà adattiva
     recenti: {},         // finestra recente di esiti (1/0) per attività
     statistiche: {},     // giusti/sbagliati per attività e per elemento
+    progressoGlobale: 0, // risposte giuste totali, in QUALSIASI attività: fa
+                          // salire di livello Gino (mai azzerato, è un traguardo)
   });
 
   // aggiunge i campi mancanti a profili vecchi (migrazione morbida)
   const completaProfilo = (p) => ({
     numScelte: 2, maiuscole: true, adattiva: true,
-    livelli: {}, recenti: {}, statistiche: {}, ...p,
+    livelli: {}, recenti: {}, statistiche: {}, progressoGlobale: 0, ...p,
   });
 
   // profilo di scorta, usato solo prima che ne esista uno vero (onboarding)
@@ -42,7 +44,7 @@
   let attivoId = null;
 
   /* Impostazioni del dispositivo (valgono per tutti i bambini). */
-  const DISPOSITIVO_DEFAULT = { velocita: 0.75, audio: true, suoni: true };
+  const DISPOSITIVO_DEFAULT = { velocita: 0.62, audio: true, suoni: true };
   let dispositivo = { ...DISPOSITIVO_DEFAULT };
 
   function salvaDispositivo() {
@@ -108,9 +110,10 @@
      Registrate nel profilo attivo, sia per attività sia per singolo
      elemento: base per i progressi e per la futura difficoltà adattiva. */
 
+  // ritorna true se questa risposta ha fatto salire Gino di livello
   function registra(attivita, itemId, giusto) {
     const prof = profiloAttivo();
-    if (!prof) return;
+    if (!prof) return false;
     const s = prof.statistiche;
     if (!s[attivita]) s[attivita] = { giusti: 0, sbagliati: 0, items: {} };
     const a = s[attivita];
@@ -120,7 +123,58 @@
       if (giusto) a.items[itemId].giusti++; else a.items[itemId].sbagliati++;
     }
     if (prof.adattiva) aggiornaLivello(prof, attivita, giusto);
+
+    let salitoDiLivello = false;
+    if (giusto) {
+      prof.progressoGlobale = (prof.progressoGlobale || 0) + 1;
+      salitoDiLivello = prof.progressoGlobale % SUCCESSI_PER_LIVELLO === 0;
+    }
     salvaProfili();
+    return salitoDiLivello;
+  }
+
+  /* ---------- Gino sale di livello (sostituisce le vecchie "stelle") ----------
+     Un traguardo GLOBALE, unico per bambino: cresce con ogni risposta giusta
+     in QUALSIASI gioco, non si azzera mai lasciando l'app. Ogni tot livelli
+     Gino sblocca un accessorio nuovo, che resta suo per sempre. */
+  const SUCCESSI_PER_LIVELLO = 10;
+  const ACCESSORI_GINO = [
+    { daLivello: 2, chiave: 'bandana',   etichetta: 'Bandana' },
+    { daLivello: 3, chiave: 'occhiali',  etichetta: 'Occhiali da sole' },
+    { daLivello: 4, chiave: 'mantello',  etichetta: 'Mantello da supereroe' },
+    { daLivello: 5, chiave: 'corona',    etichetta: 'Corona' },
+    { daLivello: 6, chiave: 'bacchetta', etichetta: 'Bacchetta magica' },
+  ];
+
+  function livelloGlobale(prof) {
+    return Math.floor((prof.progressoGlobale || 0) / SUCCESSI_PER_LIVELLO) + 1;
+  }
+  function versoProssimoLivello(prof) {
+    return (prof.progressoGlobale || 0) % SUCCESSI_PER_LIVELLO;
+  }
+  function accessoriSbloccati(livello) {
+    return ACCESSORI_GINO.filter(a => livello >= a.daLivello).map(a => a.chiave);
+  }
+  // l'accessorio (se c'è) appena sbloccato raggiungendo esattamente questo livello
+  function accessorioAlLivello(livello) {
+    return ACCESSORI_GINO.find(a => a.daLivello === livello) || null;
+  }
+
+  /* Barra di progresso mostrata in cima ai 3 giochi, al posto delle vecchie
+     stelle: livello attuale del bambino + quanto manca al prossimo. */
+  function barraLivello() {
+    const prof = P();
+    const livello = livelloGlobale(prof);
+    const verso = versoProssimoLivello(prof);
+    const percento = Math.round((verso / SUCCESSI_PER_LIVELLO) * 100);
+    return `
+      <div class="barra-livello" aria-label="Livello ${livello}, ${verso} su ${SUCCESSI_PER_LIVELLO} verso il prossimo livello">
+        <div class="mini-gino">${mascotte('normale', 52, accessoriSbloccati(livello))}</div>
+        <div class="livello-info">
+          <div class="livello-numero">Livello ${livello}</div>
+          <div class="barra-progresso"><div class="riempimento" style="width:${percento}%"></div></div>
+        </div>
+      </div>`;
   }
 
   /* ---------- difficoltà adattiva ----------
@@ -281,8 +335,10 @@
     u.lang = 'it-IT';
     if (voceItaliana) u.voice = voceItaliana;
     if (opzioni.festa) {
-      // acuto e un po' più veloce: suona gioioso e sorpreso
-      u.rate = opzioni.rate || Math.max(dispositivo.velocita, 1.0);
+      // acuto e un filo più svelto: suona gioioso, ma resta ancorato alla
+      // velocità scelta dal genitore invece di forzare sempre una velocità
+      // fissa (era la causa principale della voce "troppo veloce")
+      u.rate = opzioni.rate || Math.min(dispositivo.velocita + 0.12, 0.85);
       u.pitch = opzioni.pitch || (1.3 + Math.random() * 0.2);
     } else {
       u.rate = opzioni.rate || dispositivo.velocita;
@@ -291,6 +347,10 @@
     if (opzioni.alFine) { u.onend = opzioni.alFine; u.onerror = opzioni.alFine; }
     speechSynthesis.speak(u);
   }
+
+  // il suono di una lettera isolata ("mm", "p"...) va quasi scandito per
+  // essere percepibile: molto più lento della lettura normale
+  const RATE_SUONO_LETTERA = 0.42;
 
   const PAUSA_DOPO_LODE = 700;  // ms di silenzio dopo il complimento, prima della domanda dopo
 
@@ -354,7 +414,10 @@
 
   /* ---------- Gino, la mascotte che festeggia ---------- */
 
-  function mascotte(pose = 'felice', size = 150) {
+  /* accessori: array di chiavi sbloccate (vedi ACCESSORI_GINO) da disegnare
+     addosso a Gino — bandana, occhiali, mantello, corona, bacchetta. Restano
+     tutti addosso una volta sbloccati, si accumulano livello dopo livello. */
+  function mascotte(pose = 'felice', size = 150, accessori = []) {
     const braccia = pose === 'felice'
       // braccia in alto con le zampette: evviva!
       ? `<ellipse cx="28" cy="105" rx="12" ry="30" fill="#f5a54a" transform="rotate(42 28 105)"/>
@@ -368,6 +431,42 @@
       ? `<path d="M 78 128 Q 100 152 122 128 Z" fill="#8c4a2f"/>
          <path d="M 86 128 Q 100 140 114 128 Z" fill="#ff9d9d"/>`
       : `<path d="M 82 130 Q 100 142 118 130" stroke="#8c4a2f" stroke-width="6" fill="none" stroke-linecap="round"/>`;
+
+    const ha = (chiave) => accessori.includes(chiave);
+
+    // il mantello va DIETRO al corpo: si vede solo dove esce dai bordi.
+    // I punti dopo ogni "Q" sono SUL bordo (non solo di controllo), così il
+    // mantello sporge davvero oltre il cerchio del corpo (r=70) invece di
+    // restarne quasi del tutto nascosto.
+    const mantelloForma = 'M 62 88 Q 20 100 8 145 Q 4 175 25 205 Q 100 190 175 205' +
+      ' Q 196 175 192 145 Q 180 100 138 88 Z';
+    const mantelloDietro = ha('mantello') ? `
+      <path d="${mantelloForma}" fill="#5b8fd6"/>
+      <path d="${mantelloForma}" fill="none" stroke="#3f6db0" stroke-width="3"/>` : '';
+
+    // il resto va DAVANTI a tutto (indossato sopra), disegnato per ultimo
+    const accessoriDavanti = `
+      ${ha('bandana') ? `
+        <path d="M 62 152 Q 100 172 138 152 L 132 168 Q 100 182 68 168 Z" fill="#ef5b5b"/>
+        <path d="M 96 172 L 100 190 L 104 172 Z" fill="#ef5b5b"/>` : ''}
+      ${ha('corona') ? `
+        <path d="M 78 30 L 85 12 L 100 24 L 115 12 L 122 30 Z" fill="#f6c344" stroke="#c9971f" stroke-width="2"/>
+        <circle cx="85" cy="14" r="3" fill="#ef5b5b"/>
+        <circle cx="100" cy="26" r="3" fill="#5b8fd6"/>
+        <circle cx="115" cy="14" r="3" fill="#ef5b5b"/>` : ''}
+      ${ha('occhiali') ? `
+        <ellipse cx="76" cy="94" rx="18" ry="16" fill="#2b2b2b"/>
+        <ellipse cx="124" cy="94" rx="18" ry="16" fill="#2b2b2b"/>
+        <rect x="91" y="90" width="18" height="6" fill="#2b2b2b"/>
+        <ellipse cx="70" cy="88" rx="5" ry="4" fill="#fff" opacity="0.5"/>
+        <ellipse cx="118" cy="88" rx="5" ry="4" fill="#fff" opacity="0.5"/>` : ''}
+      ${ha('bacchetta') ? `
+        <line x1="152" y1="120" x2="182" y2="80" stroke="#c9971f" stroke-width="4" stroke-linecap="round"/>
+        <path d="M 182 80 l 5 -12 l 5 12 l 12 5 l -12 5 l -5 12 l -5 -12 l -12 -5 Z" fill="#f6c344"/>
+        <path d="M 30 40 l 3 -7 l 3 7 l 7 3 l -7 3 l -3 7 l -3 -7 l -7 -3 Z" fill="#f6c344" opacity="0.85"/>
+        <path d="M 165 165 l 2.5 -6 l 2.5 6 l 6 2.5 l -6 2.5 l -2.5 6 l -2.5 -6 l -6 -2.5 Z" fill="#f6c344" opacity="0.85"/>` : ''}
+    `;
+
     return `
       <svg viewBox="0 0 200 200" width="${size}" height="${size}" aria-hidden="true">
         <ellipse cx="58" cy="42" rx="22" ry="32" fill="#f5a54a" transform="rotate(-18 58 42)"/>
@@ -375,6 +474,7 @@
         <ellipse cx="58" cy="46" rx="11" ry="18" fill="#ffd9a8" transform="rotate(-18 58 46)"/>
         <ellipse cx="142" cy="46" rx="11" ry="18" fill="#ffd9a8" transform="rotate(18 142 46)"/>
         ${braccia}
+        ${mantelloDietro}
         <circle cx="100" cy="112" r="70" fill="#f5a54a"/>
         <ellipse cx="100" cy="140" rx="46" ry="34" fill="#ffe9cc"/>
         <circle cx="76" cy="94" r="15" fill="#fff"/>
@@ -387,6 +487,7 @@
         <circle cx="142" cy="118" r="10" fill="#ff9d9d" opacity="0.75"/>
         <ellipse cx="100" cy="114" rx="9" ry="7" fill="#8c4a2f"/>
         ${bocca}
+        ${accessoriDavanti}
       </svg>`;
   }
 
@@ -534,7 +635,7 @@
     render(`
       ${barra('', { home: true })}
       <div class="home-testata">
-        <div class="logo mascotte-dondola">${mascotte('normale', 130)}</div>
+        <div class="logo mascotte-dondola">${mascotte('normale', 130, accessoriSbloccati(livelloGlobale(P())))}</div>
         <h1>Impara con Me</h1>
       </div>
       <div class="menu-moduli">
@@ -704,6 +805,8 @@
         <div class="glifone parola">${mostraTesto(item.glyph)}</div>`;
       daDire = item.say;
     }
+    // il suono di una lettera va detto molto più lento della lettura normale
+    const opzioniDaDire = idModulo === 'lettere' ? { rate: RATE_SUONO_LETTERA } : undefined;
 
     render(`
       ${barra('')}
@@ -716,10 +819,10 @@
     `);
 
     collegaCasa();
-    parla(daDire);
+    parla(daDire, opzioniDaDire);
 
-    document.getElementById('btn-ripeti').addEventListener('click', () => parla(daDire));
-    document.getElementById('zona-dettaglio').addEventListener('click', () => parla(daDire));
+    document.getElementById('btn-ripeti').addEventListener('click', () => parla(daDire, opzioniDaDire));
+    document.getElementById('zona-dettaglio').addEventListener('click', () => parla(daDire, opzioniDaDire));
     const prima = document.getElementById('btn-prima');
     const dopo = document.getElementById('btn-dopo');
     if (indice > 0) prima.addEventListener('click', () => vaiDettaglio(idModulo, items, indice - 1, indietro));
@@ -730,14 +833,7 @@
      Nessun tempo limite, nessuna penalità: la risposta sbagliata
      si spegne con dolcezza e si può riprovare subito. */
 
-  const STELLE_PER_VINCERE = 5;
-
-  function vaiGioco(idModulo, pool, indietro, stelle = 0) {
-    if (stelle >= STELLE_PER_VINCERE) {
-      vaiFesta(() => vaiGioco(idModulo, pool, indietro, 0));
-      return;
-    }
-
+  function vaiGioco(idModulo, pool, indietro) {
     const attivita = 'trova-' + idModulo;
     const bersaglio = scegliBersaglio(pool, attivita);
     // distrattori insidiosi solo per numeri/lettere (le parole del pool sono già
@@ -751,11 +847,13 @@
     });
     const scelte = [bersaglio, ...distrattori].sort(() => Math.random() - 0.5);
 
-    // per le lettere si pronuncia il SUONO (metodo fonematico), non il nome
+    // per le lettere si pronuncia il SUONO (metodo fonematico), non il nome,
+    // e molto più lento perché un suono isolato va scandito
     const domanda =
       idModulo === 'numeri' ? `Trova il numero ${bersaglio.say}` :
       idModulo === 'lettere' ? bersaglio.suono :
       `Trova: ${bersaglio.say}`;
+    const opzioniDomanda = idModulo === 'lettere' ? { rate: RATE_SUONO_LETTERA } : undefined;
 
     const carte = scelte.map(s => {
       if (idModulo === 'numeri') {
@@ -772,13 +870,9 @@
               </button>`;
     }).join('');
 
-    const fileStelle =
-      '⭐'.repeat(stelle) +
-      `<span class="vuota">${'⭐'.repeat(STELLE_PER_VINCERE - stelle)}</span>`;
-
     render(`
       ${barra('🎮 Trova!')}
-      <div class="stelle" aria-label="${stelle} stelle su ${STELLE_PER_VINCERE}">${fileStelle}</div>
+      ${barraLivello()}
       <div class="gioco-domanda">
         <button class="btn-ripeti" id="btn-domanda">🔊 Ascolta</button>
       </div>
@@ -787,8 +881,8 @@
     `);
 
     collegaCasa();
-    parla(domanda);
-    document.getElementById('btn-domanda').addEventListener('click', () => parla(domanda));
+    parla(domanda, opzioniDomanda);
+    document.getElementById('btn-domanda').addEventListener('click', () => parla(domanda, opzioniDomanda));
 
     let risolto = false;
     let errori = 0;
@@ -797,10 +891,13 @@
         if (risolto) return;
         if (carta.dataset.id === bersaglio.id) {
           risolto = true;
-          registra('trova-' + idModulo, bersaglio.id, true);
+          const salito = registra('trova-' + idModulo, bersaglio.id, true);
           carta.classList.add('giusta');
           festeggiaMascotte();
-          parlaEPoi(lode(), { festa: true }, () => vaiGioco(idModulo, pool, indietro, stelle + 1));
+          const dopoLode = salito
+            ? () => vaiLivelloSuperato(() => vaiGioco(idModulo, pool, indietro), livelloGlobale(P()))
+            : () => vaiGioco(idModulo, pool, indietro);
+          parlaEPoi(lode(), { festa: true }, dopoLode);
           return;
         }
         errori++;
@@ -822,28 +919,34 @@
           parla(incoraggiamento());
         }
         // ripete la domanda solo se nel frattempo non si è già risposto bene
-        dopo(1800, () => { if (!risolto) parla(domanda); });
+        dopo(1800, () => { if (!risolto) parla(domanda, opzioniDomanda); });
       });
     });
   }
 
-  function vaiFesta(riparti) {
+  /* Sostituisce le vecchie "5 stelle": Gino balla e mostra tutti gli
+     accessori sbloccati finora; se questo livello ne ha appena sbloccato
+     uno nuovo, un piccolo annuncio in più. */
+  function vaiLivelloSuperato(riparti, livello) {
     const bravissimo = P().genere === 'f' ? 'Bravissima' : 'Bravissimo';
     const conNome = P().nome ? `${bravissimo} ${P().nome}` : bravissimo;
+    const nuovoAccessorio = accessorioAlLivello(livello);
     render(`
       ${barra('')}
       <div class="festa">
         <div class="coriandoli">🎉⭐🎉</div>
-        <div class="mascotte-dondola">${mascotte('felice', 190)}</div>
-        <h2>${conNome}!</h2>
-        <div style="font-size:30px">Hai vinto ${STELLE_PER_VINCERE} stelle!</div>
+        <div class="mascotte-balla">${mascotte('felice', 190, accessoriSbloccati(livello))}</div>
+        <h2>Livello ${livello}!</h2>
+        <div style="font-size:26px">${conNome}!</div>
+        ${nuovoAccessorio ? `<div class="sbloccato">🎁 Hai sbloccato: ${nuovoAccessorio.etichetta}!</div>` : ''}
         <button class="btn-grande" id="btn-ancora">🎮 Gioca ancora</button>
         <button class="btn-grande secondario" id="btn-fine">🏠 Basta così</button>
       </div>
     `);
 
     collegaCasa();
-    parla(`${conNome}! Hai vinto cinque stelle! Evviva!`, { festa: true });
+    const fraseSblocco = nuovoAccessorio ? ` Hai sbloccato: ${nuovoAccessorio.etichetta}!` : '';
+    parla(`${conNome}! Livello ${livello}!${fraseSblocco} Evviva!`, { festa: true });
     document.getElementById('btn-ancora').addEventListener('click', riparti);
     document.getElementById('btn-fine').addEventListener('click', () => vaiHome());
   }
@@ -856,12 +959,7 @@
     return DATA.parole.categorie.flatMap(cat => cat.items);
   }
 
-  function vaiGiocoParola(stelle = 0) {
-    if (stelle >= STELLE_PER_VINCERE) {
-      vaiFesta(() => vaiGiocoParola(0));
-      return;
-    }
-
+  function vaiGiocoParola() {
     const parola = scegliBersaglio(tutteLeParole(), 'completa-parola');
     const lettere = parola.glyph.split('');
     // si nasconde solo una lettera "semplice" (niente accentate)
@@ -906,13 +1004,9 @@
       `<button class="scelta" data-lettera="${l}">${mostraTesto(l)}</button>`
     ).join('');
 
-    const fileStelle =
-      '⭐'.repeat(stelle) +
-      `<span class="vuota">${'⭐'.repeat(STELLE_PER_VINCERE - stelle)}</span>`;
-
     render(`
       ${barra('🧩 Completa')}
-      <div class="stelle" aria-label="${stelle} stelle su ${STELLE_PER_VINCERE}">${fileStelle}</div>
+      ${barraLivello()}
       <div class="parola-zona">
         <div class="parola-figura">${parola.emoji}</div>
         <div class="parola-tessere">${tessere}</div>
@@ -932,13 +1026,16 @@
         if (risolto) return;
         if (carta.dataset.lettera === letteraGiusta) {
           risolto = true;
-          registra('completa', letteraGiusta, true);
           carta.classList.add('giusta');
           const tessera = document.getElementById('tessera-buco');
           tessera.textContent = mostraTesto(letteraGiusta);
           tessera.classList.add('riempita');
           festeggiaMascotte();
-          parlaEPoi(`${lode()} ${parola.say}!`, { festa: true }, () => vaiGiocoParola(stelle + 1));
+          const salito = registra('completa', letteraGiusta, true);
+          const dopoLode = salito
+            ? () => vaiLivelloSuperato(() => vaiGiocoParola(), livelloGlobale(P()))
+            : () => vaiGiocoParola();
+          parlaEPoi(`${lode()} ${parola.say}!`, { festa: true }, dopoLode);
         } else {
           registra('completa', letteraGiusta, false);
           carta.classList.add('sbagliata');
@@ -1094,25 +1191,18 @@
     return { ok, precisione, copertura, eccesso, invasione };
   }
 
-  function vaiDettato(idModulo, stelle = 0) {
-    if (stelle >= STELLE_PER_VINCERE) {
-      vaiFesta(() => vaiDettato(idModulo, 0));
-      return;
-    }
-
+  function vaiDettato(idModulo) {
     const item = scegliBersaglio(DATA[idModulo].items, 'scrivi-' + idModulo);
     const glifo = idModulo === 'lettere' ? mostraTesto(item.glyph) : item.glyph;
     // si pronuncia SOLO la lettera o il numero, senza frasi intorno;
-    // per le lettere si usa il SUONO (metodo fonematico), non il nome
+    // per le lettere si usa il SUONO (metodo fonematico), non il nome,
+    // e molto più lento perché un suono isolato va scandito
     const parlato = idModulo === 'lettere' ? item.suono : item.say;
-
-    const fileStelle =
-      '⭐'.repeat(stelle) +
-      `<span class="vuota">${'⭐'.repeat(STELLE_PER_VINCERE - stelle)}</span>`;
+    const opzioniParlato = idModulo === 'lettere' ? { rate: RATE_SUONO_LETTERA } : undefined;
 
     render(`
       ${barra('✍️ Scrivi')}
-      <div class="stelle" aria-label="${stelle} stelle su ${STELLE_PER_VINCERE}">${fileStelle}</div>
+      ${barraLivello()}
       <div class="gioco-domanda" style="margin-bottom:12px">
         <button class="btn-ripeti" id="btn-domanda">🔊 Ascolta</button>
       </div>
@@ -1128,8 +1218,8 @@
     `);
 
     collegaCasa();
-    parla(parlato);
-    document.getElementById('btn-domanda').addEventListener('click', () => parla(parlato));
+    parla(parlato, opzioniParlato);
+    document.getElementById('btn-domanda').addEventListener('click', () => parla(parlato, opzioniParlato));
 
     /* --- lavagna: disegno col dito --- */
     const canvas = document.getElementById('lavagna-canvas');
@@ -1187,7 +1277,7 @@
     document.getElementById('btn-cancella').addEventListener('click', pulisci);
     document.getElementById('btn-aiuto').addEventListener('click', () => {
       mostraAiuto(false);
-      parla(`Ricalca con il dito. ${parlato}`);
+      parla(`Ricalca con il dito. ${parlato}`, opzioniParlato);
     });
 
     /* --- controllo con aiuti progressivi --- */
@@ -1201,9 +1291,12 @@
 
       if (esito.ok) {
         risolto = true;
-        registra('scrivi-' + idModulo, item.id, true);
         festeggiaMascotte();
-        parlaEPoi(`${lode()} ${parlato}!`, { festa: true }, () => vaiDettato(idModulo, stelle + 1));
+        const salito = registra('scrivi-' + idModulo, item.id, true);
+        const dopoLode = salito
+          ? () => vaiLivelloSuperato(() => vaiDettato(idModulo), livelloGlobale(P()))
+          : () => vaiDettato(idModulo);
+        parlaEPoi(`${lode()} ${parlato}!`, { festa: true }, dopoLode);
         return;
       }
 
@@ -1219,7 +1312,7 @@
       pulisci();
       parla(tentativi === 1
         ? `Quasi! Ricalca la traccia grigia. ${parlato}`
-        : `Prova ancora, segui la traccia. ${parlato}`);
+        : `Prova ancora, segui la traccia. ${parlato}`, opzioniParlato);
     });
   }
 
@@ -1279,8 +1372,8 @@
           { testo: 'minuscole', valore: 'false', attivo: !P().maiuscole },
         ])}
         ${opzione('Velocità della voce', 'velocita', [
-          { testo: '🐢 Lenta', valore: '0.75', attivo: dispositivo.velocita <= 0.8 },
-          { testo: '🐇 Normale', valore: '0.95', attivo: dispositivo.velocita > 0.8 },
+          { testo: '🐢 Lenta', valore: '0.5', attivo: dispositivo.velocita <= 0.6 },
+          { testo: '🐇 Normale', valore: '0.7', attivo: dispositivo.velocita > 0.6 },
         ])}
         ${opzione('Voce', 'audio', [
           { testo: '🔊 Accesa', valore: 'true', attivo: dispositivo.audio },
@@ -1345,11 +1438,16 @@
   function bloccoProgressi() {
     const stat = P().statistiche;
     const nome = P().nome || 'questo bambino';
+    const rigaLivelloGino = `<div class="riga-stat">
+      <span class="nome-stat">🦊 Livello di Gino</span>
+      <span class="val-stat">${livelloGlobale(P())}</span>
+    </div>`;
     const chiavi = Object.keys(ETICHETTE_ATTIVITA).filter(k => stat[k]);
     if (!chiavi.length) {
       return `
         <div class="opzione">
           <div class="etichetta">Progressi di ${nome}</div>
+          ${rigaLivelloGino}
           <p class="nota">Ancora nessun gioco completato. Qui vedrai quante risposte giuste e sbagliate fa in ogni attività.</p>
         </div>`;
     }
@@ -1376,6 +1474,7 @@
     return `
       <div class="opzione">
         <div class="etichetta">Progressi di ${nome}</div>
+        ${rigaLivelloGino}
         <div class="riga-stat totale">
           <span class="nome-stat">Totale</span>
           <span class="val-stat"><span class="ok">${totG} ✓</span> · <span class="ko">${totS} ✗</span> · ${percTot}%</span>
