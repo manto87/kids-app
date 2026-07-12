@@ -137,6 +137,50 @@ const DATA = {
       },
     ],
   },
+
+  sillabe: {
+    id: 'sillabe',
+    titolo: 'Sillabe',
+    emoji: '🧩',
+    colore: 'turchese',
+    gruppi: [
+      { id: 'b', lettera: 'B', sillabe: ['ba', 'be', 'bi', 'bo', 'bu'], parole: [
+        { id: 's-banana',    sillaba: 'ba', resto: 'nana',    completa: 'banana',    emoji: '🍌' },
+        { id: 's-befana',    sillaba: 'be', resto: 'fana',    completa: 'befana',    emoji: '🧹' },
+        { id: 's-bici',      sillaba: 'bi', resto: 'ci',      completa: 'bici',      emoji: '🚲' },
+        { id: 's-bottiglia', sillaba: 'bo', resto: 'ttiglia', completa: 'bottiglia', emoji: '🍾' },
+        { id: 's-busta',     sillaba: 'bu', resto: 'sta',     completa: 'busta',     emoji: '✉️' },
+      ] },
+      { id: 'c', lettera: 'C', sillabe: ['ca', 'ce', 'ci', 'co', 'cu'], parole: [
+        { id: 's-casa',      sillaba: 'ca', resto: 'sa',      completa: 'casa',      emoji: '🏠' },
+        { id: 's-cesto',     sillaba: 'ce', resto: 'sto',     completa: 'cesto',     emoji: '🧺' },
+        { id: 's-ciliegia',  sillaba: 'ci', resto: 'liegia',  completa: 'ciliegia',  emoji: '🍒' },
+        { id: 's-coniglio',  sillaba: 'co', resto: 'niglio',  completa: 'coniglio',  emoji: '🐰' },
+        { id: 's-cuore',     sillaba: 'cu', resto: 'ore',     completa: 'cuore',     emoji: '❤️' },
+      ] },
+      { id: 'f', lettera: 'F', sillabe: ['fa', 'fe', 'fi', 'fo', 'fu'], parole: [
+        { id: 's-farfalla',  sillaba: 'fa', resto: 'rfalla',  completa: 'farfalla',  emoji: '🦋' },
+        { id: 's-festa',     sillaba: 'fe', resto: 'sta',     completa: 'festa',     emoji: '🎉' },
+        { id: 's-fiore',     sillaba: 'fi', resto: 'ore',     completa: 'fiore',     emoji: '🌸' },
+        { id: 's-foca',      sillaba: 'fo', resto: 'ca',      completa: 'foca',      emoji: '🦭' },
+        { id: 's-fungo',     sillaba: 'fu', resto: 'ngo',     completa: 'fungo',     emoji: '🍄' },
+      ] },
+      { id: 'm', lettera: 'M', sillabe: ['ma', 'me', 'mi', 'mo', 'mu'], parole: [
+        { id: 's-mano',      sillaba: 'ma', resto: 'no',      completa: 'mano',      emoji: '✋' },
+        { id: 's-mela',      sillaba: 'me', resto: 'la',      completa: 'mela',      emoji: '🍎' },
+        { id: 's-miele',     sillaba: 'mi', resto: 'ele',     completa: 'miele',     emoji: '🍯' },
+        { id: 's-moto',      sillaba: 'mo', resto: 'to',      completa: 'moto',      emoji: '🏍️' },
+        { id: 's-mucca',     sillaba: 'mu', resto: 'cca',     completa: 'mucca',     emoji: '🐮' },
+      ] },
+      { id: 's', lettera: 'S', sillabe: ['sa', 'se', 'si', 'so', 'su'], parole: [
+        { id: 's-sale',      sillaba: 'sa', resto: 'le',      completa: 'sale',      emoji: '🧂' },
+        { id: 's-sedia',     sillaba: 'se', resto: 'dia',     completa: 'sedia',     emoji: '🪑' },
+        { id: 's-sirena',    sillaba: 'si', resto: 'rena',    completa: 'sirena',    emoji: '🧜‍♀️' },
+        { id: 's-sole',      sillaba: 'so', resto: 'le',      completa: 'sole',      emoji: '☀️' },
+        { id: 's-succo',     sillaba: 'su', resto: 'cco',     completa: 'succo',     emoji: '🧃' },
+      ] },
+    ],
+  },
 };
 
 /* Frasi di rinforzo positivo e di incoraggiamento (mai punitive).
