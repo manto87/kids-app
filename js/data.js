@@ -116,6 +116,27 @@ const DATA = {
       },
     ],
   },
+
+  inglese: {
+    id: 'inglese',
+    titolo: 'Inglese',
+    emoji: '🇬🇧',
+    colore: 'rosa',
+    categorie: [
+      {
+        id: 'famiglia', titolo: 'Famiglia', emoji: '👪',
+        items: [
+          { id: 'e-mum',     glyph: 'Mum',     say: 'mum',     emoji: '👩' },
+          { id: 'e-dad',     glyph: 'Dad',     say: 'dad',     emoji: '👨' },
+          { id: 'e-grandma', glyph: 'Grandma', say: 'grandma', emoji: '👵' },
+          { id: 'e-grandpa', glyph: 'Grandpa', say: 'grandpa', emoji: '👴' },
+          { id: 'e-brother', glyph: 'Brother', say: 'brother', emoji: '👦' },
+          { id: 'e-sister',  glyph: 'Sister',  say: 'sister',  emoji: '👧' },
+          { id: 'e-baby',    glyph: 'Baby',    say: 'baby',    emoji: '👶' },
+        ],
+      },
+    ],
+  },
 };
 
 /* Frasi di rinforzo positivo e di incoraggiamento (mai punitive).

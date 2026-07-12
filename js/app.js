@@ -47,7 +47,7 @@
   let attivoId = null;
 
   /* Impostazioni del dispositivo (valgono per tutti i bambini). */
-  const DISPOSITIVO_DEFAULT = { velocita: 0.62, audio: true, suoni: true };
+  const DISPOSITIVO_DEFAULT = { velocita: 0.62, audio: true, suoni: true, riconoscimentoVocale: false };
   let dispositivo = { ...DISPOSITIVO_DEFAULT };
 
   function salvaDispositivo() {
@@ -322,21 +322,25 @@
     return scelti;
   }
 
-  /* ---------- sintesi vocale (voce italiana, viva e calorosa) ---------- */
+  /* ---------- sintesi vocale (voce italiana, viva e calorosa; e inglese
+     per la sezione Inglese) ---------- */
 
   let voceItaliana = null;
+  let voceInglese = null;
 
-  /* Sceglie la voce italiana più bella disponibile: le voci "naturali"
-     di Google/Apple suonano molto più accattivanti di quelle di sistema,
-     e una voce femminile morbida è più adatta a un bambino piccolo. */
-  function scegliVoce() {
-    if (!('speechSynthesis' in window)) return;
-    const voci = speechSynthesis.getVoices().filter(v => v.lang && v.lang.toLowerCase().startsWith('it'));
-    if (!voci.length) { voceItaliana = null; return; }
+  /* Sceglie la voce più bella disponibile per una lingua: le voci
+     "naturali" di Google/Apple suonano molto più accattivanti di quelle
+     di sistema, e una voce femminile morbida è più adatta a un bambino
+     piccolo. Per l'inglese si preferisce un accento britannico (en-GB),
+     coerente con "mum" e non "mom". */
+  function scegliVoceLingua(prefisso, langPreferita) {
+    if (!('speechSynthesis' in window)) return null;
+    const voci = speechSynthesis.getVoices().filter(v => v.lang && v.lang.toLowerCase().startsWith(prefisso));
+    if (!voci.length) return null;
     const punteggio = (v) => {
       const n = (v.name || '').toLowerCase();
       let s = 0;
-      if (v.lang.toLowerCase() === 'it-it') s += 2;
+      if (v.lang.toLowerCase() === langPreferita) s += 2;
       if (/google/.test(n)) s += 6;                                   // voci Google: molto naturali
       if (/(natural|neural|enhanced|premium|siri)/.test(n)) s += 6;    // voci ad alta qualità
       if (/(alice|federica|elsa|carla|paola|giulia|chiara|emma)/.test(n)) s += 3; // femminili morbide
@@ -344,7 +348,12 @@
       return s;
     };
     voci.sort((a, b) => punteggio(b) - punteggio(a));
-    voceItaliana = voci[0];
+    return voci[0];
+  }
+
+  function scegliVoce() {
+    voceItaliana = scegliVoceLingua('it', 'it-it');
+    voceInglese = scegliVoceLingua('en', 'en-gb');
   }
 
   if ('speechSynthesis' in window) {
@@ -352,12 +361,14 @@
     speechSynthesis.onvoiceschanged = scegliVoce;
   }
 
-  /* parla(testo, { rate, pitch, festa, alFine })
+  /* parla(testo, { rate, pitch, festa, alFine, lingua })
      - festa: consegna allegra ed espressiva (voce più acuta e vivace),
        usata per i complimenti così suonano davvero entusiasti.
      - alFine: richiamata quando la frase ha finito di essere pronunciata
        (o subito, se l'audio è spento) — permette di aspettare la fine
-       vera del parlato invece di indovinare un tempo fisso. */
+       vera del parlato invece di indovinare un tempo fisso.
+     - lingua: 'it' (default) o 'en' — usata solo per le parole della
+       sezione Inglese; i complimenti restano sempre in italiano. */
   function parla(testo, opzioni = {}) {
     if (!dispositivo.audio || !('speechSynthesis' in window)) {
       if (opzioni.alFine) opzioni.alFine();
@@ -365,8 +376,10 @@
     }
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(testo);
-    u.lang = 'it-IT';
-    if (voceItaliana) u.voice = voceItaliana;
+    const inglese = opzioni.lingua === 'en';
+    u.lang = inglese ? 'en-GB' : 'it-IT';
+    const voce = inglese ? voceInglese : voceItaliana;
+    if (voce) u.voice = voce;
     if (opzioni.festa) {
       // acuto e un filo più svelto: suona gioioso, ma resta ancorato alla
       // velocità scelta dal genitore invece di forzare sempre una velocità
@@ -396,6 +409,44 @@
 
   function casuale(lista) {
     return lista[Math.floor(Math.random() * lista.length)];
+  }
+
+  /* ---------- riconoscimento vocale (solo Inglese, opzionale) ----------
+     Usa l'API SpeechRecognition del browser: manda l'audio a un servizio
+     cloud (Google/Apple) per trascriverlo, quindi va acceso solo col
+     consenso esplicito del genitore (dispositivo.riconoscimentoVocale,
+     interruttore in area genitori). Se il browser non la supporta, il
+     pulsante "Ripeti la parola" non compare mai (vedi vaiCategoria). */
+  const CostruttoreRiconoscimento = window.SpeechRecognition || window.webkitSpeechRecognition;
+  function riconoscimentoDisponibile() {
+    return !!CostruttoreRiconoscimento;
+  }
+
+  // distanza di Levenshtein, per tollerare piccoli errori di trascrizione
+  function distanza(a, b) {
+    const m = a.length, n = b.length;
+    const righe = Array.from({ length: m + 1 }, (_, i) => [i, ...Array(n).fill(0)]);
+    righe[0] = Array.from({ length: n + 1 }, (_, j) => j);
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        righe[i][j] = a[i - 1] === b[j - 1]
+          ? righe[i - 1][j - 1]
+          : 1 + Math.min(righe[i - 1][j], righe[i][j - 1], righe[i - 1][j - 1]);
+      }
+    }
+    return righe[m][n];
+  }
+
+  // confronto tollerante fra la trascrizione e la parola bersaglio:
+  // uguale, parola intera contenuta, o a 1 errore di battitura di distanza
+  function pronunciaRiconosciuta(trascrizione, bersaglio) {
+    const pulisci = (t) => t.toLowerCase().trim().replace(/[.,!?;:"']/g, '');
+    const detto = pulisci(trascrizione);
+    const atteso = pulisci(bersaglio);
+    if (!detto) return false;
+    if (detto === atteso) return true;
+    if (new RegExp(`\\b${atteso}\\b`).test(detto)) return true;
+    return detto.split(/\s+/).some(parola => distanza(parola, atteso) <= 1);
   }
 
   /* ---------- complimenti e incoraggiamenti (col nome e col genere) ---------- */
@@ -754,13 +805,15 @@
         <button class="btn-modulo blu" id="vai-numeri"><span class="emoji">🔢</span> Numeri</button>
         <button class="btn-modulo verde" id="vai-lettere"><span class="emoji">🔤</span> Lettere</button>
         <button class="btn-modulo arancio" id="vai-parole"><span class="emoji">🗣️</span> Parole</button>
+        <button class="btn-modulo rosa" id="vai-inglese"><span class="emoji">🇬🇧</span> Inglese</button>
         <button class="btn-modulo viola" id="vai-scrivi"><span class="emoji">✍️</span> Scrivi</button>
       </div>
     `);
 
     document.getElementById('vai-numeri').addEventListener('click', () => { parla('Numeri!'); vaiModulo('numeri'); });
     document.getElementById('vai-lettere').addEventListener('click', () => { parla('Lettere!'); vaiModulo('lettere'); });
-    document.getElementById('vai-parole').addEventListener('click', () => { parla('Parole!'); vaiCategorie(); });
+    document.getElementById('vai-parole').addEventListener('click', () => { parla('Parole!'); vaiCategorie('parole'); });
+    document.getElementById('vai-inglese').addEventListener('click', () => { parla('Inglese!'); vaiCategorie('inglese'); });
     document.getElementById('vai-scrivi').addEventListener('click', () => { parla('Scrivi!'); vaiScrivi(); });
 
     collegaGenitori();
@@ -839,35 +892,41 @@
     if (btnParola) btnParola.addEventListener('click', () => vaiGiocoParola());
   }
 
-  /* ---------- PAROLE: prima le categorie, poi le parole ---------- */
+  /* ---------- PAROLE / INGLESE: prima le categorie, poi le parole ----------
+     Le due sezioni condividono la stessa struttura dati (categorie → items)
+     e la stessa navigazione, distinte solo da idModulo. */
 
-  function vaiCategorie() {
-    const carte = DATA.parole.categorie.map(cat => `
-      <button class="btn-modulo arancio" data-cat="${cat.id}">
+  function vaiCategorie(idModulo) {
+    const modulo = DATA[idModulo];
+    const carte = modulo.categorie.map(cat => `
+      <button class="btn-modulo ${modulo.colore}" data-cat="${cat.id}">
         <span class="emoji">${cat.emoji}</span> ${cat.titolo}
       </button>`).join('');
 
     render(`
-      ${barra('🗣️ Parole')}
+      ${barra(`${modulo.emoji} ${modulo.titolo}`)}
       <div class="menu-moduli" style="justify-content:center">${carte}</div>
     `);
 
     collegaCasa();
     app.querySelectorAll('[data-cat]').forEach(btn => {
       btn.addEventListener('click', () => {
-        const cat = DATA.parole.categorie.find(c => c.id === btn.dataset.cat);
+        const cat = modulo.categorie.find(c => c.id === btn.dataset.cat);
         parla(cat.titolo);
-        vaiCategoria(cat);
+        vaiCategoria(idModulo, cat);
       });
     });
   }
 
-  function vaiCategoria(cat) {
+  function vaiCategoria(idModulo, cat) {
+    const modulo = DATA[idModulo];
     const carte = cat.items.map((item, i) => `
       <button class="carta" data-i="${i}" aria-label="${item.say}">
         <span class="glifo">${item.emoji}</span>
         <span class="mini">${mostraTesto(item.glyph)}</span>
       </button>`).join('');
+
+    const mostraRipeti = idModulo === 'inglese' && dispositivo.riconoscimentoVocale && riconoscimentoDisponibile();
 
     render(`
       ${barra(`${cat.emoji} ${cat.titolo}`)}
@@ -875,8 +934,12 @@
         <button class="btn-modulo viola" id="vai-gioco">
           <span class="emoji">🎮</span> Gioca
         </button>
+        ${mostraRipeti ? `
+        <button class="btn-modulo viola" id="vai-ripeti">
+          <span class="emoji">🎤</span> Ripeti la parola
+        </button>` : ''}
       </div>
-      <div class="modulo-arancio">
+      <div class="modulo-${modulo.colore}">
         <div class="griglia">${carte}</div>
       </div>
     `);
@@ -884,12 +947,14 @@
     collegaCasa();
     app.querySelectorAll('.carta').forEach(carta => {
       carta.addEventListener('click', () => {
-        vaiDettaglio('parole', cat.items, Number(carta.dataset.i), () => vaiCategoria(cat));
+        vaiDettaglio(idModulo, cat.items, Number(carta.dataset.i), () => vaiCategoria(idModulo, cat));
       });
     });
     document.getElementById('vai-gioco').addEventListener('click', () => {
-      vaiGioco('parole', cat.items, () => vaiCategoria(cat));
+      vaiGioco(idModulo, cat.items, () => vaiCategoria(idModulo, cat));
     });
+    const btnRipeti = document.getElementById('vai-ripeti');
+    if (btnRipeti) btnRipeti.addEventListener('click', () => vaiRipeti(cat));
   }
 
   /* ---------- DETTAGLIO: una cosa sola, grande, con audio ---------- */
@@ -917,8 +982,12 @@
         <div class="glifone parola">${mostraTesto(item.glyph)}</div>`;
       daDire = item.say;
     }
-    // il suono di una lettera va detto molto più lento della lettura normale
-    const opzioniDaDire = idModulo === 'lettere' ? { rate: RATE_SUONO_LETTERA } : undefined;
+    // il suono di una lettera va detto molto più lento della lettura normale;
+    // le parole inglesi si pronunciano con la voce/lingua inglese
+    const opzioniDaDire =
+      idModulo === 'lettere' ? { rate: RATE_SUONO_LETTERA } :
+      idModulo === 'inglese' ? { lingua: 'en' } :
+      undefined;
 
     render(`
       ${barra('')}
@@ -960,12 +1029,18 @@
     const scelte = [bersaglio, ...distrattori].sort(() => Math.random() - 0.5);
 
     // per le lettere si pronuncia il SUONO (metodo fonematico), non il nome,
-    // e molto più lento perché un suono isolato va scandito
+    // e molto più lento perché un suono isolato va scandito; per l'inglese
+    // si pronuncia solo la parola, con voce inglese (niente cornice "Trova"
+    // mescolata nella stessa frase con un'altra lingua)
     const domanda =
       idModulo === 'numeri' ? `Trova il numero ${bersaglio.say}` :
       idModulo === 'lettere' ? bersaglio.suono :
+      idModulo === 'inglese' ? bersaglio.say :
       `Trova: ${bersaglio.say}`;
-    const opzioniDomanda = idModulo === 'lettere' ? { rate: RATE_SUONO_LETTERA } : undefined;
+    const opzioniDomanda =
+      idModulo === 'lettere' ? { rate: RATE_SUONO_LETTERA } :
+      idModulo === 'inglese' ? { lingua: 'en' } :
+      undefined;
 
     const carte = scelte.map(s => {
       if (idModulo === 'numeri') {
@@ -1014,9 +1089,10 @@
         }
         errori++;
         registra('trova-' + idModulo, bersaglio.id, false);
-        if (idModulo === 'parole') {
-          // nelle parole la carta sbagliata non si spegne: si riprova,
-          // e al terzo tentativo compaiono le figure come aiuto
+        if (idModulo === 'parole' || idModulo === 'inglese') {
+          // nelle parole (italiane e inglesi) la carta sbagliata non si
+          // spegne: si riprova, e al terzo tentativo compaiono le figure
+          // come aiuto
           carta.classList.add('scossa');
           dopo(500, () => carta.classList.remove('scossa'));
           if (errori >= 2) {
@@ -1033,6 +1109,106 @@
         // ripete la domanda solo se nel frattempo non si è già risposto bene
         dopo(1800, () => { if (!risolto) parla(domanda, opzioniDomanda); });
       });
+    });
+  }
+
+  /* ---------- GIOCO "RIPETI LA PAROLA" (solo Inglese, col microfono) ----------
+     Si aggiunge al gioco a tocco, non lo sostituisce: compare solo se il
+     browser supporta SpeechRecognition E il genitore ha dato il consenso
+     esplicito (dispositivo.riconoscimentoVocale, vedi vaiGenitori). Come
+     ovunque nell'app: nessuna penalità sulla risposta non riconosciuta,
+     si può sempre riprovare. */
+  function vaiRipeti(cat) {
+    const bersaglio = scegliBersaglio(cat.items, 'ripeti-inglese');
+
+    render(`
+      ${barra(`🎤 ${cat.titolo}`)}
+      ${barraLivello()}
+      <div class="dettaglio">
+        <div class="figura">${bersaglio.emoji}</div>
+        <div class="glifone parola">${mostraTesto(bersaglio.glyph)}</div>
+      </div>
+      <div class="gioco-domanda">
+        <button class="btn-ripeti" id="btn-ascolta">🔊 Ascolta</button>
+      </div>
+      <button class="btn-grande" id="btn-microfono">🎤 Ripeti la parola</button>
+      <p class="nota" id="stato-ascolto" style="text-align:center;min-height:26px"></p>
+    `);
+
+    collegaCasa();
+    parla(bersaglio.say, { lingua: 'en' });
+    document.getElementById('btn-ascolta').addEventListener('click', () => parla(bersaglio.say, { lingua: 'en' }));
+
+    const btnMic = document.getElementById('btn-microfono');
+    const stato = document.getElementById('stato-ascolto');
+    let risolto = false;
+    let riconoscimentoAttivo = null;
+
+    // se si torna alla home mentre il microfono sta ascoltando, lo spegne subito
+    const btnCasa = document.getElementById('btn-casa');
+    if (btnCasa) btnCasa.addEventListener('click', () => {
+      if (riconoscimentoAttivo) { try { riconoscimentoAttivo.abort(); } catch {} }
+    });
+
+    btnMic.addEventListener('click', () => {
+      if (risolto || !riconoscimentoDisponibile()) return;
+      const g = generazione;
+      const recognition = new CostruttoreRiconoscimento();
+      recognition.lang = 'en-GB';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+      riconoscimentoAttivo = recognition;
+
+      btnMic.classList.add('in-ascolto');
+      btnMic.disabled = true;
+      stato.textContent = '🎧 Ti ascolto...';
+
+      recognition.onresult = (e) => {
+        if (g !== generazione) return;
+        const trascrizione = e.results[0][0].transcript;
+        if (pronunciaRiconosciuta(trascrizione, bersaglio.say)) {
+          risolto = true;
+          stato.textContent = '';
+          const salito = registra('ripeti-inglese', bersaglio.id, true);
+          festeggiaMascotte();
+          const dopoLode = salito
+            ? () => vaiLivelloSuperato(() => vaiRipeti(cat), livelloGlobale(P()))
+            : () => vaiRipeti(cat);
+          parlaEPoi(lode(), { festa: true }, dopoLode);
+        } else {
+          registra('ripeti-inglese', bersaglio.id, false);
+          stato.textContent = `Ho sentito: "${trascrizione}"`;
+          parla(incoraggiamento());
+        }
+      };
+
+      recognition.onerror = (e) => {
+        if (g !== generazione) return;
+        if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+          stato.textContent = '🚫 Serve il permesso del microfono.';
+        } else if (e.error === 'no-speech') {
+          stato.textContent = 'Non ho sentito niente, riprova!';
+        } else {
+          stato.textContent = 'Qualcosa non ha funzionato, riprova!';
+        }
+      };
+
+      recognition.onend = () => {
+        riconoscimentoAttivo = null;
+        if (g !== generazione) return;
+        btnMic.classList.remove('in-ascolto');
+        if (!risolto) btnMic.disabled = false;
+      };
+
+      try {
+        recognition.start();
+      } catch {
+        riconoscimentoAttivo = null;
+        stato.textContent = 'Non riesco ad ascoltare in questo momento.';
+        btnMic.classList.remove('in-ascolto');
+        btnMic.disabled = false;
+      }
     });
   }
 
@@ -1509,12 +1685,25 @@
           { testo: '🎵 Accesi', valore: 'true', attivo: dispositivo.suoni },
           { testo: '🔕 Spenti', valore: 'false', attivo: !dispositivo.suoni },
         ])}
+        ${riconoscimentoDisponibile() ? `
+        <div class="opzione">
+          <div class="etichetta">Riconoscimento vocale (Inglese)</div>
+          <p class="nota">Per far pronunciare le parole inglesi al bambino nel microfono, la sua voce viene inviata a Google o Apple per essere riconosciuta. Attivalo solo se sei d'accordo.</p>
+          <div class="valori">
+            <button class="btn-valore ${dispositivo.riconoscimentoVocale ? 'attivo' : ''}" data-opzione="riconoscimentoVocale" data-valore="true">🎤 Attivo</button>
+            <button class="btn-valore ${!dispositivo.riconoscimentoVocale ? 'attivo' : ''}" data-opzione="riconoscimentoVocale" data-valore="false">🔇 Spento</button>
+          </div>
+        </div>` : `
+        <div class="opzione">
+          <div class="etichetta">Riconoscimento vocale (Inglese)</div>
+          <p class="nota">Questo dispositivo/browser non lo supporta: la sezione Inglese resta comunque disponibile col gioco a tocco.</p>
+        </div>`}
       </div>
     `);
 
     collegaCasa();
 
-    // le impostazioni di difficoltà sono del BAMBINO; voce/suoni del dispositivo
+    // le impostazioni di difficoltà sono del BAMBINO; voce/suoni/microfono del dispositivo
     app.querySelectorAll('.opzione .btn-valore[data-opzione]').forEach(btn => {
       btn.addEventListener('click', () => {
         const nome = btn.dataset.opzione;
@@ -1525,6 +1714,7 @@
         else if (nome === 'velocita') { dispositivo.velocita = Number(valore); salvaDispositivo(); }
         else if (nome === 'audio') { dispositivo.audio = valore === 'true'; salvaDispositivo(); }
         else if (nome === 'suoni') { dispositivo.suoni = valore === 'true'; salvaDispositivo(); }
+        else if (nome === 'riconoscimentoVocale') { dispositivo.riconoscimentoVocale = valore === 'true'; salvaDispositivo(); }
         vaiGenitori();
       });
     });
