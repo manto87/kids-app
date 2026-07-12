@@ -52,7 +52,7 @@ npx http-server /path/al/repo -p 8321 -s     # oppure python3 -m http.server
    con `page.waitForFunction` invece di un `waitForTimeout` fisso (vedi punto 12).
 4b. Gioco "Completa la parola" (`#vai-gioco-parola`, solo in Lettere): tessere `.tessera`
    con un `.tessera.buco` ("?"); la voce dice la parola; scelta giusta → buco riempito
-   (`.tessera.riempita`) + mascotte. Nota: la parola scritta "orso" viene pronunciata "orsetto".
+   (`.tessera.riempita`) + mascotte.
 5. Parent gate: tap veloce su `#btn-genitori` NON deve aprire; `mouse.down()` + 2,2 s + `mouse.up()` sì.
 6. Impostazioni: cambiare opzione → verificare `localStorage.impostazioni` e l'effetto in UI.
 7. Offline: caricare la pagina, attendere ~1 s (installazione service worker),
@@ -171,6 +171,36 @@ npx http-server /path/al/repo -p 8321 -s     # oppure python3 -m http.server
     di toccare il DOM, e il pulsante 🏠 chiama `recognition.abort()` se si
     naviga via mentre si sta ascoltando. Verificare con
     `scratchpad/verify-inglese.js`.
+16. Sillabe (`DATA.sillabe.gruppi`: 5 gruppi per lettera — B/C/F/M/S —
+    ciascuno con `sillabe` (5 stringhe) e `parole` (5 oggetti
+    `{id, sillaba, resto, completa, emoji}`, con `sillaba + resto ===
+    completa`). `vaiSillabeGruppi()` elenca i gruppi; `vaiSillabeGioco(gruppo)`
+    mostra le 5 parole insieme (`.sillaba-riga` con `.sillaba-vuoto` +
+    resto + emoji) e le 5 sillabe mescolate nel `.sillaba-vassoio`
+    (`.sillaba-tile`). Trascinamento VERO con Pointer Events (non
+    tocca-per-posizionare): `pointerdown` sulla tessera avvia il
+    trascinamento (la tessera passa a `position: fixed` via classe
+    `.in-trascinamento` e segue il puntatore), `pointerup` usa
+    `document.elementFromPoint` (nascondendo temporaneamente la tessera
+    con `visibility:hidden` per leggere cosa c'è sotto) per capire su
+    quale `.sillaba-riga` è stata rilasciata — l'INTERA riga è zona di
+    rilascio valida, non solo il piccolo riquadro vuoto. In Playwright si
+    simula con `page.mouse.move` (sopra la tessera) → `page.mouse.down()`
+    → alcuni `page.mouse.move` intermedi verso il centro della riga
+    bersaglio → `page.mouse.up()` (i Pointer Event da mouse sono quelli
+    che Playwright genera in modo affidabile in headless). Sillaba giusta
+    → si aggancia nel buco (`.sillaba-vuoto.riempito`), la tessera esce dal
+    DOM, `registra('sillabe-' + gruppo.id, parola.id, true)`, si sente la
+    parola completa con lode, e se scatta un livello si passa da
+    `vaiLivelloSuperato` prima di tornare al gioco (stesso smistamento
+    degli altri giochi) — quando TUTTE le 5 parole sono complete si torna
+    a `vaiSillabeGruppi()`. Sillaba sbagliata (anche rilasciata fuori da
+    ogni riga) → `registra(..., false)`, la tessera torna al vassoio con
+    l'animazione `.scossa` (stesso `@keyframes scuoti` di altri giochi) e
+    un incoraggiamento vocale, MAI una vera penalità. Ogni ingresso nel
+    gioco rigenera tutto da zero (nessuno stato a metà persistito — se un
+    livello sale a metà gruppo, tornando indietro il gruppo riparte da
+    capo). Verificare con `scratchpad/verify-sillabe.js`.
 
 ## Attenzioni
 

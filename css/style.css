@@ -18,6 +18,7 @@
   --arancio: #ef8b3a;  --arancio-chiaro: #fdeada;
   --viola: #9068c0;    --viola-chiaro: #ece2f8;
   --rosa: #e0658f;     --rosa-chiaro: #fbe3ec;
+  --turchese: #2fa8a3; --turchese-chiaro: #ddf3f1;
   --rosso-soft: #e57373;
   --giallo: #f6c344;
 }
@@ -148,6 +149,7 @@ button {
 .btn-modulo.arancio { background: var(--arancio-chiaro); border: 4px solid var(--arancio); }
 .btn-modulo.viola   { background: var(--viola-chiaro);   border: 4px solid var(--viola); }
 .btn-modulo.rosa    { background: var(--rosa-chiaro);    border: 4px solid var(--rosa); }
+.btn-modulo.turchese { background: var(--turchese-chiaro); border: 4px solid var(--turchese); }
 
 /* ---------- griglie di carte ---------- */
 
@@ -181,6 +183,7 @@ button {
 .modulo-verde .carta   { border-color: var(--verde-chiaro); }
 .modulo-arancio .carta { border-color: var(--arancio-chiaro); }
 .modulo-rosa .carta    { border-color: var(--rosa-chiaro); }
+.modulo-turchese .carta { border-color: var(--turchese-chiaro); }
 
 /* ---------- schermata dettaglio (impara) ---------- */
 
@@ -692,6 +695,90 @@ button {
   0%, 100% { transform: scale(1); }
   50%      { transform: scale(1.12); }
 }
+
+/* ---------- gioco "sillabe" (trascina la sillaba sulla parola) ---------- */
+
+.sillaba-righe {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 6px 0 20px;
+}
+
+.sillaba-riga {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--carta);
+  border: 4px solid var(--turchese-chiaro);
+  border-radius: var(--raggio);
+  box-shadow: var(--ombra);
+  padding: 10px 16px;
+}
+
+.sillaba-riga.completata { border-color: var(--verde); background: var(--verde-chiaro); }
+
+.sillaba-vuoto {
+  min-width: 64px;
+  height: 56px;
+  padding: 0 6px;
+  background: var(--giallo);
+  border: 4px solid var(--arancio);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  font-weight: bold;
+  color: #8c6a1d;
+  animation: pulsa 1.4s ease-in-out infinite;
+}
+
+.sillaba-vuoto.riempito {
+  background: var(--verde-chiaro);
+  border-color: var(--verde);
+  color: var(--testo);
+  animation: salta 0.6s ease;
+}
+
+.sillaba-resto { font-size: 30px; font-weight: bold; flex: 1; }
+.sillaba-figura { font-size: 40px; line-height: 1; }
+
+.sillaba-vassoio {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px 0 24px;
+}
+
+.sillaba-tile {
+  min-width: 64px;
+  height: 56px;
+  padding: 0 10px;
+  background: var(--turchese-chiaro);
+  border: 4px solid var(--turchese);
+  border-radius: 14px;
+  box-shadow: var(--ombra);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  font-weight: bold;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.sillaba-tile.in-trascinamento {
+  position: fixed;
+  z-index: 1000;
+  pointer-events: none;
+  transform: scale(1.1);
+  box-shadow: 0 8px 16px rgba(58,51,48,0.25);
+}
+
+.sillaba-tile.scossa { animation: scuoti 0.4s ease; }
 
 /* ---------- scrivi (dettato sulla lavagna) ---------- */
 

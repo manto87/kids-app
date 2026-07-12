@@ -804,6 +804,7 @@
       <div class="menu-moduli">
         <button class="btn-modulo blu" id="vai-numeri"><span class="emoji">🔢</span> Numeri</button>
         <button class="btn-modulo verde" id="vai-lettere"><span class="emoji">🔤</span> Lettere</button>
+        <button class="btn-modulo turchese" id="vai-sillabe"><span class="emoji">🧩</span> Sillabe</button>
         <button class="btn-modulo arancio" id="vai-parole"><span class="emoji">🗣️</span> Parole</button>
         <button class="btn-modulo rosa" id="vai-inglese"><span class="emoji">🇬🇧</span> Inglese</button>
         <button class="btn-modulo viola" id="vai-scrivi"><span class="emoji">✍️</span> Scrivi</button>
@@ -812,6 +813,7 @@
 
     document.getElementById('vai-numeri').addEventListener('click', () => { parla('Numeri!'); vaiModulo('numeri'); });
     document.getElementById('vai-lettere').addEventListener('click', () => { parla('Lettere!'); vaiModulo('lettere'); });
+    document.getElementById('vai-sillabe').addEventListener('click', () => { parla('Sillabe!'); vaiSillabeGruppi(); });
     document.getElementById('vai-parole').addEventListener('click', () => { parla('Parole!'); vaiCategorie('parole'); });
     document.getElementById('vai-inglese').addEventListener('click', () => { parla('Inglese!'); vaiCategorie('inglese'); });
     document.getElementById('vai-scrivi').addEventListener('click', () => { parla('Scrivi!'); vaiScrivi(); });
@@ -955,6 +957,129 @@
     });
     const btnRipeti = document.getElementById('vai-ripeti');
     if (btnRipeti) btnRipeti.addEventListener('click', () => vaiRipeti(cat));
+  }
+
+  /* ---------- SILLABE: trascina la sillaba sulla parola giusta ----------
+     Esercizio fonematico ispirato ai fogli cartacei: 5 sillabe (stessa
+     consonante + le 5 vocali) da trascinare nello spazio vuoto della
+     parola giusta, scelta guardando il disegno. Trascinamento VERO
+     (Pointer Events), non tocca-per-posizionare come "Completa la
+     parola" — più fedele al materiale di riferimento. */
+
+  function vaiSillabeGruppi() {
+    const carte = DATA.sillabe.gruppi.map(g => `
+      <button class="btn-modulo turchese" data-gruppo="${g.id}">
+        <span class="emoji">🧩</span> ${g.lettera}
+      </button>`).join('');
+
+    render(`
+      ${barra(`${DATA.sillabe.emoji} ${DATA.sillabe.titolo}`)}
+      <div class="menu-moduli" style="justify-content:center">${carte}</div>
+    `);
+
+    collegaCasa();
+    app.querySelectorAll('[data-gruppo]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const gruppo = DATA.sillabe.gruppi.find(g => g.id === btn.dataset.gruppo);
+        parla(`Lettera ${gruppo.lettera}`);
+        vaiSillabeGioco(gruppo);
+      });
+    });
+  }
+
+  function vaiSillabeGioco(gruppo) {
+    const sillabeMescolate = [...gruppo.sillabe].sort(() => Math.random() - 0.5);
+    const attivita = 'sillabe-' + gruppo.id;
+
+    const righe = gruppo.parole.map(p => `
+      <div class="sillaba-riga" data-parola="${p.id}" data-sillaba="${p.sillaba}">
+        <div class="sillaba-vuoto" id="vuoto-${p.id}"></div>
+        <div class="sillaba-resto">${mostraTesto(p.resto)}</div>
+        <div class="sillaba-figura">${p.emoji}</div>
+      </div>`).join('');
+
+    const tessere = sillabeMescolate.map(s => `
+      <div class="sillaba-tile" id="tile-${s}" data-sillaba="${s}">${mostraTesto(s)}</div>`).join('');
+
+    render(`
+      ${barra(`🧩 Lettera ${gruppo.lettera}`)}
+      ${barraLivello()}
+      <p class="nota" style="text-align:center">Trascina la sillaba sulla parola giusta</p>
+      <div class="sillaba-righe">${righe}</div>
+      <div class="sillaba-vassoio">${tessere}</div>
+    `);
+
+    collegaCasa();
+
+    const totale = gruppo.parole.length;
+    let completate = 0;
+
+    function agganciaGiusta(tile, riga) {
+      const parola = gruppo.parole.find(p => p.id === riga.dataset.parola);
+      const vuoto = document.getElementById('vuoto-' + parola.id);
+      vuoto.textContent = mostraTesto(parola.sillaba);
+      vuoto.classList.add('riempito');
+      riga.classList.add('completata');
+      tile.remove();
+      completate++;
+
+      festeggiaMascotte();
+      const salito = registra(attivita, parola.id, true);
+      const finito = completate >= totale;
+      const dopoLode = salito
+        ? () => vaiLivelloSuperato(() => (finito ? vaiSillabeGruppi() : vaiSillabeGioco(gruppo)), livelloGlobale(P()))
+        : finito ? () => vaiSillabeGruppi() : null;
+      if (dopoLode) parlaEPoi(`${lode()} ${parola.completa}!`, { festa: true }, dopoLode);
+      else parla(`${lode()} ${parola.completa}!`, { festa: true });
+    }
+
+    function rifiuta(tile) {
+      const propriaParola = gruppo.parole.find(p => p.sillaba === tile.dataset.sillaba);
+      registra(attivita, propriaParola.id, false);
+      tile.classList.add('scossa');
+      dopo(400, () => tile.classList.remove('scossa'));
+      parla(incoraggiamento());
+    }
+
+    function avviaTrascinamento(tile, evIniziale) {
+      const g = generazione;
+      const rect = tile.getBoundingClientRect();
+      const offsetX = evIniziale.clientX - rect.left;
+      const offsetY = evIniziale.clientY - rect.top;
+      tile.style.width = rect.width + 'px';
+      tile.style.height = rect.height + 'px';
+      tile.classList.add('in-trascinamento');
+
+      const posiziona = (x, y) => {
+        tile.style.left = (x - offsetX) + 'px';
+        tile.style.top = (y - offsetY) + 'px';
+      };
+      posiziona(evIniziale.clientX, evIniziale.clientY);
+
+      const onMove = (ev) => { if (g === generazione) posiziona(ev.clientX, ev.clientY); };
+      const onUp = (ev) => {
+        document.removeEventListener('pointermove', onMove);
+        document.removeEventListener('pointerup', onUp);
+        if (g !== generazione) return;
+
+        tile.classList.remove('in-trascinamento');
+        tile.style.left = ''; tile.style.top = ''; tile.style.width = ''; tile.style.height = '';
+
+        tile.style.visibility = 'hidden';
+        const sotto = document.elementFromPoint(ev.clientX, ev.clientY);
+        tile.style.visibility = '';
+        const riga = sotto && sotto.closest('.sillaba-riga');
+
+        if (riga && riga.dataset.sillaba === tile.dataset.sillaba) agganciaGiusta(tile, riga);
+        else rifiuta(tile);
+      };
+      document.addEventListener('pointermove', onMove);
+      document.addEventListener('pointerup', onUp);
+    }
+
+    app.querySelectorAll('.sillaba-tile').forEach(tile => {
+      tile.addEventListener('pointerdown', (ev) => { ev.preventDefault(); avviaTrascinamento(tile, ev); });
+    });
   }
 
   /* ---------- DETTAGLIO: una cosa sola, grande, con audio ---------- */
