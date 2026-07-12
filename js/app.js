@@ -988,10 +988,13 @@
   }
 
   function vaiSillabeGioco(gruppo) {
+    // ogni sillaba ha un piccolo pool di parole possibili: se ne pesca una
+    // a caso a ogni ingresso, così il gruppo non è sempre lo stesso
+    const parole = gruppo.sillabe.map(s => ({ ...casuale(gruppo.vocaboli[s]), sillaba: s }));
     const sillabeMescolate = [...gruppo.sillabe].sort(() => Math.random() - 0.5);
     const attivita = 'sillabe-' + gruppo.id;
 
-    const righe = gruppo.parole.map(p => `
+    const righe = parole.map(p => `
       <div class="sillaba-riga" data-parola="${p.id}" data-sillaba="${p.sillaba}">
         <div class="sillaba-vuoto" id="vuoto-${p.id}"></div>
         <div class="sillaba-resto">${mostraTesto(p.resto)}</div>
@@ -1011,11 +1014,11 @@
 
     collegaCasa();
 
-    const totale = gruppo.parole.length;
+    const totale = parole.length;
     let completate = 0;
 
     function agganciaGiusta(tile, riga) {
-      const parola = gruppo.parole.find(p => p.id === riga.dataset.parola);
+      const parola = parole.find(p => p.id === riga.dataset.parola);
       const vuoto = document.getElementById('vuoto-' + parola.id);
       vuoto.textContent = mostraTesto(parola.sillaba);
       vuoto.classList.add('riempito');
@@ -1034,7 +1037,7 @@
     }
 
     function rifiuta(tile) {
-      const propriaParola = gruppo.parole.find(p => p.sillaba === tile.dataset.sillaba);
+      const propriaParola = parole.find(p => p.sillaba === tile.dataset.sillaba);
       registra(attivita, propriaParola.id, false);
       tile.classList.add('scossa');
       dopo(400, () => tile.classList.remove('scossa'));

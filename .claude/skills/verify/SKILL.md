@@ -178,9 +178,18 @@ npx http-server /path/al/repo -p 8321 -s     # oppure python3 -m http.server
     comunque da sola invece di restare "in ascolto" per sempre senza
     feedback. Verificare con `scratchpad/verify-inglese.js`.
 16. Sillabe (`DATA.sillabe.gruppi`: 5 gruppi per lettera — B/C/F/M/S —
-    ciascuno con `sillabe` (5 stringhe) e `parole` (5 oggetti
-    `{id, sillaba, resto, completa, emoji}`, con `sillaba + resto ===
-    completa`). `vaiSillabeGruppi()` elenca i gruppi; `vaiSillabeGioco(gruppo)`
+    ciascuno con `sillabe` (5 stringhe) e `vocaboli` (mappa sillaba→POOL di
+    2-3 parole possibili, oggetti `{id, resto, completa, emoji}` con
+    `sillaba + resto === completa`, es. `vocaboli.ba = [banana, balena]`).
+    `vaiSillabeGioco(gruppo)`, a ogni ingresso, pesca CASUALMENTE una parola
+    dal pool di ciascuna sillaba (`gruppo.sillabe.map(s => casuale(gruppo.
+    vocaboli[s]))`) e la arricchisce con `sillaba: s` — così lo stesso
+    gruppo/lettera propone parole diverse ogni volta, non sempre le stesse
+    (richiesto esplicitamente dall'utente). Nei test: non assumere quale
+    parola sia stata pescata per una data sillaba, leggerlo dal DOM
+    (`document.querySelector('.sillaba-riga[data-sillaba="ba"]').dataset.
+    parola`) e recuperare l'oggetto da `DATA.sillabe.gruppi[...].vocaboli`.
+    `vaiSillabeGruppi()` elenca i gruppi; `vaiSillabeGioco(gruppo)`
     mostra le 5 parole insieme (`.sillaba-riga` con `.sillaba-vuoto` +
     resto + emoji) e le 5 sillabe mescolate nel `.sillaba-vassoio`
     (`.sillaba-tile`). Trascinamento VERO con Pointer Events (non

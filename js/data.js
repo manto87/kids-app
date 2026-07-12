@@ -143,42 +143,129 @@ const DATA = {
     titolo: 'Sillabe',
     emoji: '🧩',
     colore: 'turchese',
+    /* Ogni sillaba ha un PICCOLO POOL di parole possibili (non una sola):
+       a ogni ingresso nel gioco (vaiSillabeGioco, js/app.js) se ne pesca
+       una a caso per sillaba, così il gruppo non è sempre lo stesso pur
+       restando sulla stessa lettera. */
     gruppi: [
-      { id: 'b', lettera: 'B', sillabe: ['ba', 'be', 'bi', 'bo', 'bu'], parole: [
-        { id: 's-banana',    sillaba: 'ba', resto: 'nana',    completa: 'banana',    emoji: '🍌' },
-        { id: 's-befana',    sillaba: 'be', resto: 'fana',    completa: 'befana',    emoji: '🧹' },
-        { id: 's-bici',      sillaba: 'bi', resto: 'ci',      completa: 'bici',      emoji: '🚲' },
-        { id: 's-bottiglia', sillaba: 'bo', resto: 'ttiglia', completa: 'bottiglia', emoji: '🍾' },
-        { id: 's-busta',     sillaba: 'bu', resto: 'sta',     completa: 'busta',     emoji: '✉️' },
-      ] },
-      { id: 'c', lettera: 'C', sillabe: ['ca', 'ce', 'ci', 'co', 'cu'], parole: [
-        { id: 's-casa',      sillaba: 'ca', resto: 'sa',      completa: 'casa',      emoji: '🏠' },
-        { id: 's-cesto',     sillaba: 'ce', resto: 'sto',     completa: 'cesto',     emoji: '🧺' },
-        { id: 's-ciliegia',  sillaba: 'ci', resto: 'liegia',  completa: 'ciliegia',  emoji: '🍒' },
-        { id: 's-coniglio',  sillaba: 'co', resto: 'niglio',  completa: 'coniglio',  emoji: '🐰' },
-        { id: 's-cuore',     sillaba: 'cu', resto: 'ore',     completa: 'cuore',     emoji: '❤️' },
-      ] },
-      { id: 'f', lettera: 'F', sillabe: ['fa', 'fe', 'fi', 'fo', 'fu'], parole: [
-        { id: 's-farfalla',  sillaba: 'fa', resto: 'rfalla',  completa: 'farfalla',  emoji: '🦋' },
-        { id: 's-festa',     sillaba: 'fe', resto: 'sta',     completa: 'festa',     emoji: '🎉' },
-        { id: 's-fiore',     sillaba: 'fi', resto: 'ore',     completa: 'fiore',     emoji: '🌸' },
-        { id: 's-foca',      sillaba: 'fo', resto: 'ca',      completa: 'foca',      emoji: '🦭' },
-        { id: 's-fungo',     sillaba: 'fu', resto: 'ngo',     completa: 'fungo',     emoji: '🍄' },
-      ] },
-      { id: 'm', lettera: 'M', sillabe: ['ma', 'me', 'mi', 'mo', 'mu'], parole: [
-        { id: 's-mano',      sillaba: 'ma', resto: 'no',      completa: 'mano',      emoji: '✋' },
-        { id: 's-mela',      sillaba: 'me', resto: 'la',      completa: 'mela',      emoji: '🍎' },
-        { id: 's-miele',     sillaba: 'mi', resto: 'ele',     completa: 'miele',     emoji: '🍯' },
-        { id: 's-moto',      sillaba: 'mo', resto: 'to',      completa: 'moto',      emoji: '🏍️' },
-        { id: 's-mucca',     sillaba: 'mu', resto: 'cca',     completa: 'mucca',     emoji: '🐮' },
-      ] },
-      { id: 's', lettera: 'S', sillabe: ['sa', 'se', 'si', 'so', 'su'], parole: [
-        { id: 's-sale',      sillaba: 'sa', resto: 'le',      completa: 'sale',      emoji: '🧂' },
-        { id: 's-sedia',     sillaba: 'se', resto: 'dia',     completa: 'sedia',     emoji: '🪑' },
-        { id: 's-sirena',    sillaba: 'si', resto: 'rena',    completa: 'sirena',    emoji: '🧜‍♀️' },
-        { id: 's-sole',      sillaba: 'so', resto: 'le',      completa: 'sole',      emoji: '☀️' },
-        { id: 's-succo',     sillaba: 'su', resto: 'cco',     completa: 'succo',     emoji: '🧃' },
-      ] },
+      { id: 'b', lettera: 'B', sillabe: ['ba', 'be', 'bi', 'bo', 'bu'], vocaboli: {
+        ba: [
+          { id: 's-banana',  resto: 'nana',  completa: 'banana',  emoji: '🍌' },
+          { id: 's-balena',  resto: 'lena',  completa: 'balena',  emoji: '🐳' },
+        ],
+        be: [
+          { id: 's-befana',    resto: 'fana',    completa: 'befana',    emoji: '🧹' },
+          { id: 's-berretto',  resto: 'rretto',  completa: 'berretto',  emoji: '🧢' },
+        ],
+        bi: [
+          { id: 's-bici',      resto: 'ci',      completa: 'bici',      emoji: '🚲' },
+          { id: 's-biscotto',  resto: 'scotto',  completa: 'biscotto',  emoji: '🍪' },
+          { id: 's-bimbo',     resto: 'mbo',     completa: 'bimbo',     emoji: '👶' },
+        ],
+        bo: [
+          { id: 's-bottiglia', resto: 'ttiglia', completa: 'bottiglia', emoji: '🍾' },
+          { id: 's-bosco',     resto: 'sco',      completa: 'bosco',     emoji: '🌲' },
+          { id: 's-bocca',     resto: 'cca',      completa: 'bocca',     emoji: '👄' },
+        ],
+        bu: [
+          { id: 's-busta',     resto: 'sta',      completa: 'busta',     emoji: '✉️' },
+          { id: 's-buco',      resto: 'co',       completa: 'buco',      emoji: '🕳️' },
+          { id: 's-burro',     resto: 'rro',      completa: 'burro',     emoji: '🧈' },
+        ],
+      } },
+      { id: 'c', lettera: 'C', sillabe: ['ca', 'ce', 'ci', 'co', 'cu'], vocaboli: {
+        ca: [
+          { id: 's-casa',      resto: 'sa',      completa: 'casa',      emoji: '🏠' },
+          { id: 's-cane',      resto: 'ne',      completa: 'cane',      emoji: '🐶' },
+          { id: 's-cappello',  resto: 'ppello',  completa: 'cappello',  emoji: '🎩' },
+        ],
+        ce: [
+          { id: 's-cesto',     resto: 'sto',     completa: 'cesto',     emoji: '🧺' },
+          { id: 's-cerchio',   resto: 'rchio',   completa: 'cerchio',   emoji: '⭕' },
+        ],
+        ci: [
+          { id: 's-ciliegia',  resto: 'liegia',  completa: 'ciliegia',  emoji: '🍒' },
+          { id: 's-cinque',    resto: 'nque',    completa: 'cinque',    emoji: '5️⃣' },
+        ],
+        co: [
+          { id: 's-coniglio',  resto: 'niglio',  completa: 'coniglio',  emoji: '🐰' },
+          { id: 's-cocco',     resto: 'cco',     completa: 'cocco',     emoji: '🥥' },
+          { id: 's-corona',    resto: 'rona',    completa: 'corona',    emoji: '👑' },
+        ],
+        cu: [
+          { id: 's-cuore',     resto: 'ore',     completa: 'cuore',     emoji: '❤️' },
+          { id: 's-cuoco',     resto: 'oco',     completa: 'cuoco',     emoji: '👨‍🍳' },
+        ],
+      } },
+      { id: 'f', lettera: 'F', sillabe: ['fa', 'fe', 'fi', 'fo', 'fu'], vocaboli: {
+        fa: [
+          { id: 's-farfalla',  resto: 'rfalla',  completa: 'farfalla',  emoji: '🦋' },
+          { id: 's-fata',      resto: 'ta',      completa: 'fata',      emoji: '🧚' },
+        ],
+        fe: [
+          { id: 's-festa',     resto: 'sta',     completa: 'festa',     emoji: '🎉' },
+          { id: 's-fetta',     resto: 'tta',     completa: 'fetta',     emoji: '🍰' },
+        ],
+        fi: [
+          { id: 's-fiore',     resto: 'ore',     completa: 'fiore',     emoji: '🌸' },
+          { id: 's-figlio',    resto: 'glio',    completa: 'figlio',    emoji: '👦' },
+        ],
+        fo: [
+          { id: 's-foca',      resto: 'ca',      completa: 'foca',      emoji: '🦭' },
+          { id: 's-foglia',    resto: 'glia',    completa: 'foglia',    emoji: '🍃' },
+          { id: 's-fontana',   resto: 'ntana',   completa: 'fontana',   emoji: '⛲' },
+        ],
+        fu: [
+          { id: 's-fungo',     resto: 'ngo',     completa: 'fungo',     emoji: '🍄' },
+          { id: 's-fuoco',     resto: 'oco',     completa: 'fuoco',     emoji: '🔥' },
+          { id: 's-fumo',      resto: 'mo',      completa: 'fumo',      emoji: '💨' },
+        ],
+      } },
+      { id: 'm', lettera: 'M', sillabe: ['ma', 'me', 'mi', 'mo', 'mu'], vocaboli: {
+        ma: [
+          { id: 's-mano',      resto: 'no',      completa: 'mano',      emoji: '✋' },
+          { id: 's-mare',      resto: 're',      completa: 'mare',      emoji: '🌊' },
+          { id: 's-maglia',    resto: 'glia',    completa: 'maglia',    emoji: '👕' },
+        ],
+        me: [
+          { id: 's-mela',      resto: 'la',      completa: 'mela',      emoji: '🍎' },
+          { id: 's-melone',    resto: 'lone',    completa: 'melone',    emoji: '🍈' },
+        ],
+        mi: [
+          { id: 's-miele',     resto: 'ele',     completa: 'miele',     emoji: '🍯' },
+          { id: 's-mimosa',    resto: 'mosa',    completa: 'mimosa',    emoji: '🌼' },
+        ],
+        mo: [
+          { id: 's-moto',      resto: 'to',      completa: 'moto',      emoji: '🏍️' },
+          { id: 's-monte',     resto: 'nte',     completa: 'monte',     emoji: '⛰️' },
+          { id: 's-moneta',    resto: 'neta',    completa: 'moneta',    emoji: '🪙' },
+        ],
+        mu: [
+          { id: 's-mucca',     resto: 'cca',     completa: 'mucca',     emoji: '🐮' },
+          { id: 's-muro',      resto: 'ro',      completa: 'muro',      emoji: '🧱' },
+        ],
+      } },
+      { id: 's', lettera: 'S', sillabe: ['sa', 'se', 'si', 'so', 'su'], vocaboli: {
+        sa: [
+          { id: 's-sale',      resto: 'le',      completa: 'sale',      emoji: '🧂' },
+          { id: 's-sasso',     resto: 'sso',     completa: 'sasso',     emoji: '🪨' },
+        ],
+        se: [
+          { id: 's-sedia',     resto: 'dia',     completa: 'sedia',     emoji: '🪑' },
+          { id: 's-serpente',  resto: 'rpente',  completa: 'serpente',  emoji: '🐍' },
+        ],
+        si: [
+          { id: 's-sirena',    resto: 'rena',    completa: 'sirena',    emoji: '🧜‍♀️' },
+        ],
+        so: [
+          { id: 's-sole',      resto: 'le',      completa: 'sole',      emoji: '☀️' },
+          { id: 's-sogno',     resto: 'gno',     completa: 'sogno',     emoji: '💭' },
+        ],
+        su: [
+          { id: 's-succo',     resto: 'cco',     completa: 'succo',     emoji: '🧃' },
+          { id: 's-suono',     resto: 'ono',     completa: 'suono',     emoji: '🔊' },
+        ],
+      } },
     ],
   },
 };
