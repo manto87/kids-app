@@ -169,8 +169,14 @@ npx http-server /path/al/repo -p 8321 -s     # oppure python3 -m http.server
     trascrizione, MAI una penalità vera (si può sempre riprovare). Le
     callback controllano `generazione` (stesso meccanismo di `dopo()`) prima
     di toccare il DOM, e il pulsante 🏠 chiama `recognition.abort()` se si
-    naviga via mentre si sta ascoltando. Verificare con
-    `scratchpad/verify-inglese.js`.
+    naviga via mentre si sta ascoltando. Gestiti anche `onnomatch` (alcuni
+    browser lo emettono al posto di `result` quando non trovano nessuna
+    corrispondenza sicura — senza gestirlo la parola veniva detta ma non
+    succedeva visibilmente nulla, bug segnalato e corretto) e una rete di
+    sicurezza (`setTimeout` di 7s): se il motore non emette PROPRIO NESSUN
+    evento (capita su alcuni dispositivi/browser), l'interfaccia si sblocca
+    comunque da sola invece di restare "in ascolto" per sempre senza
+    feedback. Verificare con `scratchpad/verify-inglese.js`.
 16. Sillabe (`DATA.sillabe.gruppi`: 5 gruppi per lettera — B/C/F/M/S —
     ciascuno con `sillabe` (5 stringhe) e `parole` (5 oggetti
     `{id, sillaba, resto, completa, emoji}`, con `sillaba + resto ===
