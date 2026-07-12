@@ -111,7 +111,7 @@ const DATA = {
           { id: 'p-letto',  glyph: 'letto',  say: 'letto',  emoji: '🛏️' },
           { id: 'p-sedia',  glyph: 'sedia',  say: 'sedia',  emoji: '🪑' },
           { id: 'p-scarpe', glyph: 'scarpe', say: 'scarpe', emoji: '👟' },
-          { id: 'p-orso',   glyph: 'orso',   say: 'orsetto', emoji: '🧸' },
+          { id: 'p-orso',   glyph: 'orso',   say: 'orso',    emoji: '🧸' },
         ],
       },
     ],

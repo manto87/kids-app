@@ -29,12 +29,15 @@
     statistiche: {},     // giusti/sbagliati per attività e per elemento
     progressoGlobale: 0, // risposte giuste totali, in QUALSIASI attività: fa
                           // salire di livello Gino (mai azzerato, è un traguardo)
+    accessoriStagione: {}, // chiave accessorio → stagione fissata al momento
+                            // dello sblocco (solo per gli accessori stagionali)
   });
 
   // aggiunge i campi mancanti a profili vecchi (migrazione morbida)
   const completaProfilo = (p) => ({
     numScelte: 2, maiuscole: true, adattiva: true,
-    livelli: {}, recenti: {}, statistiche: {}, progressoGlobale: 0, ...p,
+    livelli: {}, recenti: {}, statistiche: {}, progressoGlobale: 0,
+    accessoriStagione: {}, ...p,
   });
 
   // profilo di scorta, usato solo prima che ne esista uno vero (onboarding)
@@ -128,6 +131,7 @@
     if (giusto) {
       prof.progressoGlobale = (prof.progressoGlobale || 0) + 1;
       salitoDiLivello = prof.progressoGlobale % SUCCESSI_PER_LIVELLO === 0;
+      if (salitoDiLivello) fissaStagioneSeServe(prof, livelloGlobale(prof));
     }
     salvaProfili();
     return salitoDiLivello;
@@ -136,15 +140,44 @@
   /* ---------- Gino sale di livello (sostituisce le vecchie "stelle") ----------
      Un traguardo GLOBALE, unico per bambino: cresce con ogni risposta giusta
      in QUALSIASI gioco, non si azzera mai lasciando l'app. Ogni tot livelli
-     Gino sblocca un accessorio nuovo, che resta suo per sempre. */
+     Gino sblocca un accessorio nuovo, che resta suo per sempre. Dal livello 7
+     i nuovi accessori sono "stagionali": quando si sbloccano per la prima
+     volta assumono l'aspetto della stagione reale in corso in quel momento
+     (calcolata dalla data) e restano fissati così per sempre. */
   const SUCCESSI_PER_LIVELLO = 10;
   const ACCESSORI_GINO = [
-    { daLivello: 2, chiave: 'bandana',   etichetta: 'Bandana' },
-    { daLivello: 3, chiave: 'occhiali',  etichetta: 'Occhiali da sole' },
-    { daLivello: 4, chiave: 'mantello',  etichetta: 'Mantello da supereroe' },
-    { daLivello: 5, chiave: 'corona',    etichetta: 'Corona' },
-    { daLivello: 6, chiave: 'bacchetta', etichetta: 'Bacchetta magica' },
+    { daLivello: 2,  chiave: 'bandana',      etichetta: 'Bandana' },
+    { daLivello: 3,  chiave: 'occhiali',     etichetta: 'Occhiali da sole' },
+    { daLivello: 4,  chiave: 'mantello',     etichetta: 'Mantello da supereroe' },
+    { daLivello: 5,  chiave: 'corona',       etichetta: 'Corona' },
+    { daLivello: 6,  chiave: 'bacchetta',    etichetta: 'Bacchetta magica' },
+    { daLivello: 7,  chiave: 'cappello',     etichetta: 'Cappellino',        stagionale: true },
+    { daLivello: 8,  chiave: 'borsa',        etichetta: 'Borsa a tracolla',  stagionale: true },
+    { daLivello: 9,  chiave: 'scarpe',       etichetta: 'Scarpe',            stagionale: true },
+    { daLivello: 10, chiave: 'oggettozampa', etichetta: 'Oggetto speciale',  stagionale: true },
+    { daLivello: 11, chiave: 'particelle',   etichetta: 'Decorazioni',       stagionale: true },
+    { daLivello: 12, chiave: 'coronaSuprema', etichetta: 'Corona suprema',   stagionale: true },
   ];
+
+  // stagione meteorologica corrente (dic-feb inverno, mar-mag primavera, ...)
+  function stagioneCorrente(data = new Date()) {
+    const m = data.getMonth() + 1;
+    if (m === 12 || m <= 2) return 'inverno';
+    if (m <= 5) return 'primavera';
+    if (m <= 8) return 'estate';
+    return 'autunno';
+  }
+
+  // se il livello appena raggiunto sblocca un accessorio stagionale mai
+  // sbloccato prima, fissa per sempre la stagione con cui verrà disegnato
+  function fissaStagioneSeServe(prof, livello) {
+    const accessorio = accessorioAlLivello(livello);
+    if (!accessorio || !accessorio.stagionale) return;
+    if (!prof.accessoriStagione) prof.accessoriStagione = {};
+    if (!prof.accessoriStagione[accessorio.chiave]) {
+      prof.accessoriStagione[accessorio.chiave] = stagioneCorrente();
+    }
+  }
 
   function livelloGlobale(prof) {
     return Math.floor((prof.progressoGlobale || 0) / SUCCESSI_PER_LIVELLO) + 1;
@@ -169,7 +202,7 @@
     const percento = Math.round((verso / SUCCESSI_PER_LIVELLO) * 100);
     return `
       <div class="barra-livello" aria-label="Livello ${livello}, ${verso} su ${SUCCESSI_PER_LIVELLO} verso il prossimo livello">
-        <div class="mini-gino">${mascotte('normale', 52, accessoriSbloccati(livello))}</div>
+        <div class="mini-gino">${mascotte('normale', 52, accessoriSbloccati(livello), prof.accessoriStagione)}</div>
         <div class="livello-info">
           <div class="livello-numero">Livello ${livello}</div>
           <div class="barra-progresso"><div class="riempimento" style="width:${percento}%"></div></div>
@@ -414,10 +447,83 @@
 
   /* ---------- Gino, la mascotte che festeggia ---------- */
 
+  /* I 6 accessori "stagionali" (dal livello 7): stessa forma/posizione per
+     tutti, cambiano solo colori e piccolo motivo secondo la stagione fissata
+     al momento dello sblocco (vedi fissaStagioneSeServe). Un fallback su
+     'estate' copre il caso (raro) di stagione mancante nei dati salvati. */
+  function svgCappello(s) {
+    const tese   = { primavera: '#a8d97a', estate: '#f6c344', autunno: '#e2793d', inverno: '#cfe8f3' };
+    const corpi  = { primavera: '#ff8fab', estate: '#f6c344', autunno: '#8c4a2f', inverno: '#5b8fd6' };
+    const motivi = {
+      primavera: '<circle cx="150" cy="18" r="4" fill="#fff"/><circle cx="150" cy="18" r="2" fill="#f6c344"/>',
+      estate:    '<rect x="134" y="25" width="32" height="5" fill="#5b8fd6"/>',
+      autunno:   '<path d="M 147 14 Q 152 7 159 11 Q 154 18 147 14 Z" fill="#c9971f"/>',
+      inverno:   '<circle cx="150" cy="7" r="6" fill="#fff"/>',
+    };
+    return `
+      <ellipse cx="150" cy="30" rx="26" ry="9" fill="${tese[s]}" transform="rotate(-12 150 30)"/>
+      <path d="M 132 28 Q 150 4 168 28 Z" fill="${corpi[s]}"/>
+      ${motivi[s]}`;
+  }
+  function svgBorsa(s) {
+    const cinghie = { primavera: '#8bc34a', estate: '#5b8fd6', autunno: '#8c4a2f', inverno: '#7fa8c9' };
+    const borse   = { primavera: '#ff8fab', estate: '#f6c344', autunno: '#e2793d', inverno: '#cfe8f3' };
+    return `
+      <line x1="75" y1="50" x2="155" y2="163" stroke="${cinghie[s]}" stroke-width="7" stroke-linecap="round"/>
+      <rect x="136" y="153" width="32" height="26" rx="6" fill="${borse[s]}" stroke="${cinghie[s]}" stroke-width="3"/>`;
+  }
+  function svgScarpe(s) {
+    const colori = { primavera: '#8bc34a', estate: '#f6c344', autunno: '#8c4a2f', inverno: '#eaf6ff' };
+    const bordi  = { primavera: '#5b8f2f', estate: '#c9971f', autunno: '#5c2f18', inverno: '#8fd0e0' };
+    return `
+      <ellipse cx="76" cy="192" rx="20" ry="10" fill="${colori[s]}" stroke="${bordi[s]}" stroke-width="2"/>
+      <ellipse cx="124" cy="192" rx="20" ry="10" fill="${colori[s]}" stroke="${bordi[s]}" stroke-width="2"/>`;
+  }
+  // oggetto tenuto nella zampa sinistra: aquilone/secchiello/cesto/palla di neve
+  function svgOggetto(s) {
+    if (s === 'primavera') return `
+      <line x1="45" y1="120" x2="30" y2="70" stroke="#8c4a2f" stroke-width="2"/>
+      <path d="M 30 55 L 42 70 L 30 85 L 18 70 Z" fill="#ff8fab" stroke="#e0537a" stroke-width="2"/>`;
+    if (s === 'autunno') return `
+      <path d="M 18 112 Q 30 100 42 112 L 40 128 Q 30 134 20 128 Z" fill="#c9971f" stroke="#8c4a2f" stroke-width="2"/>
+      <circle cx="26" cy="112" r="4" fill="#8c4a2f"/><circle cx="34" cy="110" r="4" fill="#e2793d"/>`;
+    if (s === 'inverno') return `
+      <circle cx="30" cy="115" r="14" fill="#eaf6ff" stroke="#8fd0e0" stroke-width="2"/>
+      <circle cx="26" cy="111" r="2" fill="#fff"/>`;
+    return `
+      <path d="M 20 105 L 40 105 L 36 128 L 24 128 Z" fill="#5b8fd6" stroke="#3f6db0" stroke-width="2"/>
+      <line x1="20" y1="105" x2="40" y2="105" stroke="#3f6db0" stroke-width="2"/>`;
+  }
+  // piccole decorazioni fluttuanti fuori dal corpo: nessun rischio di sovrapposizione
+  function svgParticelle(s) {
+    const p = {
+      primavera: '<path d="M 15 60 q 5 -8 10 0 q -5 8 -10 0 Z" fill="#ff8fab"/>' +
+                  '<path d="M 182 150 q 5 -8 10 0 q -5 8 -10 0 Z" fill="#ff8fab"/>',
+      estate:    '<circle cx="18" cy="150" r="5" fill="#f6c344"/><circle cx="13" cy="140" r="3" fill="#f6c344"/>' +
+                  '<circle cx="186" cy="60" r="5" fill="#f6c344"/>',
+      autunno:   '<path d="M 12 100 q 6 4 2 10 q -6 -2 -2 -10 Z" fill="#e2793d"/>' +
+                  '<path d="M 186 130 q 6 4 2 10 q -6 -2 -2 -10 Z" fill="#c9971f"/>',
+      inverno:   '<circle cx="16" cy="80" r="3" fill="#eaf6ff"/><circle cx="11" cy="95" r="2" fill="#fff"/>' +
+                  '<circle cx="188" cy="100" r="3" fill="#eaf6ff"/>',
+    };
+    return p[s] || p.estate;
+  }
+  // traguardo finale (livello 12): sostituisce la corona semplice, non si somma
+  function svgCoronaSuprema(s) {
+    const oro   = { primavera: '#ff8fab', estate: '#f6c344', autunno: '#c9971f', inverno: '#cfe8f3' };
+    const gemme = { primavera: '#8bc34a', estate: '#5b8fd6', autunno: '#8c4a2f', inverno: '#5b8fd6' };
+    return `
+      <path d="M 72 32 L 80 8 L 92 22 L 100 4 L 108 22 L 120 8 L 128 32 Z" fill="${oro[s]}" stroke="#c9971f" stroke-width="2"/>
+      <circle cx="80" cy="12" r="3.5" fill="${gemme[s]}"/>
+      <circle cx="100" cy="8" r="3.5" fill="${gemme[s]}"/>
+      <circle cx="120" cy="12" r="3.5" fill="${gemme[s]}"/>`;
+  }
+
   /* accessori: array di chiavi sbloccate (vedi ACCESSORI_GINO) da disegnare
-     addosso a Gino — bandana, occhiali, mantello, corona, bacchetta. Restano
-     tutti addosso una volta sbloccati, si accumulano livello dopo livello. */
-  function mascotte(pose = 'felice', size = 150, accessori = []) {
+     addosso a Gino. Restano tutti addosso una volta sbloccati, si accumulano
+     livello dopo livello. `stagioni` è la mappa profilo.accessoriStagione,
+     usata solo dagli accessori con `stagionale: true`. */
+  function mascotte(pose = 'felice', size = 150, accessori = [], stagioni = {}) {
     const braccia = pose === 'felice'
       // braccia in alto con le zampette: evviva!
       ? `<ellipse cx="28" cy="105" rx="12" ry="30" fill="#f5a54a" transform="rotate(42 28 105)"/>
@@ -433,6 +539,7 @@
       : `<path d="M 82 130 Q 100 142 118 130" stroke="#8c4a2f" stroke-width="6" fill="none" stroke-linecap="round"/>`;
 
     const ha = (chiave) => accessori.includes(chiave);
+    const st = (chiave) => stagioni[chiave] || 'estate';
 
     // il mantello va DIETRO al corpo: si vede solo dove esce dai bordi.
     // I punti dopo ogni "Q" sono SUL bordo (non solo di controllo), così il
@@ -449,7 +556,7 @@
       ${ha('bandana') ? `
         <path d="M 62 152 Q 100 172 138 152 L 132 168 Q 100 182 68 168 Z" fill="#ef5b5b"/>
         <path d="M 96 172 L 100 190 L 104 172 Z" fill="#ef5b5b"/>` : ''}
-      ${ha('corona') ? `
+      ${ha('coronaSuprema') ? svgCoronaSuprema(st('coronaSuprema')) : ha('corona') ? `
         <path d="M 78 30 L 85 12 L 100 24 L 115 12 L 122 30 Z" fill="#f6c344" stroke="#c9971f" stroke-width="2"/>
         <circle cx="85" cy="14" r="3" fill="#ef5b5b"/>
         <circle cx="100" cy="26" r="3" fill="#5b8fd6"/>
@@ -465,6 +572,11 @@
         <path d="M 182 80 l 5 -12 l 5 12 l 12 5 l -12 5 l -5 12 l -5 -12 l -12 -5 Z" fill="#f6c344"/>
         <path d="M 30 40 l 3 -7 l 3 7 l 7 3 l -7 3 l -3 7 l -3 -7 l -7 -3 Z" fill="#f6c344" opacity="0.85"/>
         <path d="M 165 165 l 2.5 -6 l 2.5 6 l 6 2.5 l -6 2.5 l -2.5 6 l -2.5 -6 l -6 -2.5 Z" fill="#f6c344" opacity="0.85"/>` : ''}
+      ${ha('cappello') ? svgCappello(st('cappello')) : ''}
+      ${ha('borsa') ? svgBorsa(st('borsa')) : ''}
+      ${ha('scarpe') ? svgScarpe(st('scarpe')) : ''}
+      ${ha('oggettozampa') ? svgOggetto(st('oggettozampa')) : ''}
+      ${ha('particelle') ? svgParticelle(st('particelle')) : ''}
     `;
 
     return `
@@ -635,7 +747,7 @@
     render(`
       ${barra('', { home: true })}
       <div class="home-testata">
-        <div class="logo mascotte-dondola">${mascotte('normale', 130, accessoriSbloccati(livelloGlobale(P())))}</div>
+        <div class="logo mascotte-dondola">${mascotte('normale', 130, accessoriSbloccati(livelloGlobale(P())), P().accessoriStagione)}</div>
         <h1>Impara con Me</h1>
       </div>
       <div class="menu-moduli">
@@ -924,6 +1036,20 @@
     });
   }
 
+  // coriandoli sparsi (posizione/ritardo/durata casuali) che cadono per
+  // tutta la schermata di livello superato, più ricchi del vecchio blocco fisso
+  function coriandoliFesta() {
+    const simboli = ['🎉', '⭐', '✨', '🎊', '💛'];
+    let html = '';
+    for (let i = 0; i < 14; i++) {
+      const sinistra = Math.round(Math.random() * 100);
+      const ritardo = (Math.random() * 0.6).toFixed(2);
+      const durata = (1.6 + Math.random() * 1.2).toFixed(2);
+      html += `<span class="coriandolo-festa" style="left:${sinistra}%;animation-delay:${ritardo}s;animation-duration:${durata}s">${casuale(simboli)}</span>`;
+    }
+    return html;
+  }
+
   /* Sostituisce le vecchie "5 stelle": Gino balla e mostra tutti gli
      accessori sbloccati finora; se questo livello ne ha appena sbloccato
      uno nuovo, un piccolo annuncio in più. */
@@ -934,8 +1060,8 @@
     render(`
       ${barra('')}
       <div class="festa">
-        <div class="coriandoli">🎉⭐🎉</div>
-        <div class="mascotte-balla">${mascotte('felice', 190, accessoriSbloccati(livello))}</div>
+        <div class="coriandoli-festa">${coriandoliFesta()}</div>
+        <div class="mascotte-balla">${mascotte('felice', 190, accessoriSbloccati(livello), P().accessoriStagione)}</div>
         <h2>Livello ${livello}!</h2>
         <div style="font-size:26px">${conNome}!</div>
         ${nuovoAccessorio ? `<div class="sbloccato">🎁 Hai sbloccato: ${nuovoAccessorio.etichetta}!</div>` : ''}
