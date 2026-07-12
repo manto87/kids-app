@@ -111,20 +111,36 @@ npx http-server /path/al/repo -p 8321 -s     # oppure python3 -m http.server
     (mini-Gino + `.livello-numero` + `.barra-progresso .riempimento` con `width` in %)
     al posto della vecchia fila di stelle, in cima ai 3 giochi. Ogni 10 giuste →
     `vaiLivelloSuperato(riparti, livello)`: stessa struttura `.festa`/`#btn-ancora`/
-    `#btn-fine` di prima, ma `h2` ora è "Livello N!" e, se questo livello sblocca un
-    accessorio nuovo (`ACCESSORI_GINO`: bandana@2, occhiali@3, mantello@4, corona@5,
-    bacchetta@6), compare anche `.festa .sbloccato`. `mascotte(pose, size, accessori)`
-    accetta un array di chiavi accessorio e le disegna addosso — accumulate per sempre
-    (`accessoriSbloccati(livello)` = tutte quelle con soglia raggiunta). Sistema
-    INDIPENDENTE dalla difficoltà adattiva del punto 11 (quella è per attività e regola
-    la sfida; questa è globale e regola solo il traguardo/festeggiamento). `registra()`
-    ora ritorna `true` se la risposta ha fatto scattare un livello — usarlo per decidere
-    se il prossimo round deve passare da `vaiLivelloSuperato` o direttamente al gioco.
-    Verificare con `scratchpad/verify.js` (10 round → livello 2 + sblocco bandana) e
-    `scratchpad/verify-livelli.js` (livelli alti, tutti gli accessori insieme via
-    `progressoGlobale` impostato direttamente in `localStorage` per non dover rigiocare
-    decine di round — attenzione: dev'essere un multiplo di 10 MENO 1 prima dell'ultima
-    risposta giusta, es. 69 per arrivare a livello 8 con quella risposta).
+    `#btn-fine` di prima, ma `h2` ora è "Livello N!", i coriandoli sono generati da
+    `coriandoliFesta()` (14 `.coriandolo-festa` indipendenti, non un unico blocco), e
+    se questo livello sblocca un accessorio nuovo (`ACCESSORI_GINO`, 11 in totale, fino
+    al livello 12) compare anche `.festa .sbloccato` (con animazione `scintillio`).
+    `mascotte(pose, size, accessori, stagioni)` accetta un array di chiavi accessorio
+    (le disegna addosso, accumulate per sempre — `accessoriSbloccati(livello)`) e una
+    mappa chiave→stagione per gli accessori stagionali. Sistema INDIPENDENTE dalla
+    difficoltà adattiva del punto 11. `registra()` ritorna `true` se la risposta ha
+    fatto scattare un livello.
+
+    Livelli 2-6 (bandana/occhiali/mantello/corona/bacchetta): accessorio FISSO, sempre
+    uguale, come prima. Livelli 7-12 (cappello@7, borsa@8, scarpe@9, oggettozampa@10,
+    particelle@11, coronaSuprema@12 — quest'ultima SOSTITUISCE la corona semplice
+    invece di sommarsi): accessorio STAGIONALE — alla prima volta che si raggiunge
+    quel livello, `fissaStagioneSeServe()` (dentro `registra()`) calcola
+    `stagioneCorrente()` dalla data di sistema (dic-feb inverno, mar-mag primavera,
+    giu-ago estate, set-nov autunno) e la salva per sempre in
+    `profilo.accessoriStagione[chiave]`; da lì in poi quell'accessorio si disegna
+    sempre con quella stagione, indipendentemente da che data sia oggi. Per testare
+    le 4 varianti senza aspettare il cambio di stagione reale: impostare
+    `progressoGlobale` al livello desiderato via `localStorage`, mockare `Date` (o
+    scrivere direttamente `accessoriStagione` nel profilo) PRIMA della risposta che fa
+    scattare il livello, poi verificare che cambiando la data di sistema DOPO lo
+    sblocco l'accessorio non cambi più aspetto.
+    Verificare con `scratchpad/verify.js` (10 round → livello 2 + sblocco bandana),
+    `scratchpad/verify-livelli.js` (livelli alti fino al 12, tutti gli accessori
+    insieme via `progressoGlobale` impostato direttamente in `localStorage` per non
+    dover rigiocare decine di round — attenzione: dev'essere un multiplo di 10 MENO 1
+    prima dell'ultima risposta giusta, es. 69 per arrivare a livello 8 con quella
+    risposta) e `scratchpad/verify-stagioni.js` (fissaggio stagione per livello 7-12).
 
 ## Attenzioni
 
