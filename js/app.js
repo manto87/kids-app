@@ -1289,10 +1289,31 @@
       btnMic.disabled = true;
       stato.textContent = '🎧 Ti ascolto...';
 
+      // rete di sicurezza: su alcuni dispositivi/browser il riconoscimento
+      // a volte non emette NESSUN evento (né result né error) — senza
+      // questo timer il microfono resterebbe "in ascolto" per sempre,
+      // senza alcun feedback, esattamente il problema segnalato
+      const timeoutAscolto = setTimeout(() => {
+        if (g !== generazione || riconoscimentoAttivo !== recognition) return;
+        try { recognition.abort(); } catch {}
+        stato.textContent = 'Non ho sentito bene, riprova!';
+        btnMic.classList.remove('in-ascolto');
+        btnMic.disabled = false;
+        riconoscimentoAttivo = null;
+      }, 7000);
+
+      const nonRiconosciuto = (trascrizione) => {
+        registra('ripeti-inglese', bersaglio.id, false);
+        stato.textContent = trascrizione ? `Ho sentito: "${trascrizione}"` : 'Non ho capito bene, riprova!';
+        parla(incoraggiamento());
+      };
+
       recognition.onresult = (e) => {
+        clearTimeout(timeoutAscolto);
         if (g !== generazione) return;
-        const trascrizione = e.results[0][0].transcript;
-        if (pronunciaRiconosciuta(trascrizione, bersaglio.say)) {
+        const risultato = e.results && e.results[0] && e.results[0][0];
+        const trascrizione = risultato ? risultato.transcript : '';
+        if (trascrizione && pronunciaRiconosciuta(trascrizione, bersaglio.say)) {
           risolto = true;
           stato.textContent = '';
           const salito = registra('ripeti-inglese', bersaglio.id, true);
@@ -1302,13 +1323,22 @@
             : () => vaiRipeti(cat);
           parlaEPoi(lode(), { festa: true }, dopoLode);
         } else {
-          registra('ripeti-inglese', bersaglio.id, false);
-          stato.textContent = `Ho sentito: "${trascrizione}"`;
-          parla(incoraggiamento());
+          nonRiconosciuto(trascrizione);
         }
       };
 
+      // alcuni browser, quando non trovano nessuna corrispondenza con
+      // sufficiente sicurezza, emettono "nomatch" invece di "result": va
+      // gestito allo stesso modo, altrimenti la parola viene detta ma non
+      // succede visibilmente nulla (il problema segnalato)
+      recognition.onnomatch = () => {
+        clearTimeout(timeoutAscolto);
+        if (g !== generazione) return;
+        nonRiconosciuto('');
+      };
+
       recognition.onerror = (e) => {
+        clearTimeout(timeoutAscolto);
         if (g !== generazione) return;
         if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
           stato.textContent = '🚫 Serve il permesso del microfono.';
@@ -1320,6 +1350,7 @@
       };
 
       recognition.onend = () => {
+        clearTimeout(timeoutAscolto);
         riconoscimentoAttivo = null;
         if (g !== generazione) return;
         btnMic.classList.remove('in-ascolto');
@@ -1329,6 +1360,7 @@
       try {
         recognition.start();
       } catch {
+        clearTimeout(timeoutAscolto);
         riconoscimentoAttivo = null;
         stato.textContent = 'Non riesco ad ascoltare in questo momento.';
         btnMic.classList.remove('in-ascolto');
