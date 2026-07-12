@@ -1,7 +1,7 @@
 /* Service worker: rende l'app utilizzabile anche senza connessione.
    Alza VERSIONE quando cambiano i file, per aggiornare la cache. */
 
-const VERSIONE = 'impara-v15';
+const VERSIONE = 'impara-v16';
 
 const FILE_DA_SALVARE = [
   '.',

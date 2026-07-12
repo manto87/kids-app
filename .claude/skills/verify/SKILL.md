@@ -216,6 +216,27 @@ npx http-server /path/al/repo -p 8321 -s     # oppure python3 -m http.server
     gioco rigenera tutto da zero (nessuno stato a metà persistito — se un
     livello sale a metà gruppo, tornando indietro il gruppo riparte da
     capo). Verificare con `scratchpad/verify-sillabe.js`.
+17. Diagnostica microfono (`🔬 Prova il microfono`, area genitori — pulsante
+    `#btn-diagnostica-voce`, visibile solo se `riconoscimentoDisponibile()`):
+    `vaiDiagnosticaVoce()` prova SEPARATAMENTE (1) `navigator.mediaDevices.
+    getUserMedia({audio:true})` — mostra un errore specifico se il permesso
+    è negato, altrimenti una barra di livello (`misuraLivelloMicrofono()`,
+    ~1,8s via `AudioContext`/`AnalyserNode`) — e (2) un vero tentativo di
+    `SpeechRecognition` (8s di timeout), riportando l'esito grezzo
+    (`result`/`nomatch`/`error`/timeout) invece del messaggio semplificato
+    del gioco vero. Rileva anche se l'app è "installata" sulla schermata
+    Home (`navigator.standalone` su iOS, o `matchMedia('(display-mode:
+    standalone)')`) e lo segnala esplicitamente: su iPhone è la causa più
+    comune di riconoscimento che non risponde MAI (nessun evento, sempre
+    timeout) — Safari spesso non fa funzionare `SpeechRecognition` nelle
+    PWA installate, mentre funziona (o almeno risponde con un errore
+    chiaro) se il sito è aperto normalmente in Safari. Nei test: mockare
+    `navigator.mediaDevices.getUserMedia`, `window.AudioContext` (un
+    oggetto finto con `createMediaStreamSource`/`createAnalyser`/`close`
+    basta) e `window.SpeechRecognition`/`webkitSpeechRecognition`, ed
+    eventualmente `Object.defineProperty(window.navigator, 'standalone',
+    {value:true})` per simulare l'installazione. Verificare con
+    `scratchpad/verify-diagnostica-voce.js`.
 
 ## Attenzioni
 
