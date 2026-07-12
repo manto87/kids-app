@@ -1372,6 +1372,140 @@
     });
   }
 
+  // misura per ~1,8s il livello del microfono e lo mostra come barra (0-100%),
+  // usata solo dal test diagnostico per confermare che il mic riceve audio
+  function misuraLivelloMicrofono(stream, elementoBarra) {
+    return new Promise((resolve) => {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const sorgente = ctx.createMediaStreamSource(stream);
+        const analizzatore = ctx.createAnalyser();
+        analizzatore.fftSize = 512;
+        sorgente.connect(analizzatore);
+        const dati = new Uint8Array(analizzatore.frequencyBinCount);
+        const scadenza = Date.now() + 1800;
+        const passo = () => {
+          analizzatore.getByteTimeDomainData(dati);
+          let somma = 0;
+          for (let i = 0; i < dati.length; i++) { const v = (dati[i] - 128) / 128; somma += v * v; }
+          const rms = Math.sqrt(somma / dati.length);
+          elementoBarra.style.width = Math.min(100, Math.round(rms * 300)) + '%';
+          if (Date.now() < scadenza) requestAnimationFrame(passo);
+          else { ctx.close(); resolve(); }
+        };
+        passo();
+      } catch {
+        resolve();
+      }
+    });
+  }
+
+  /* Schermata diagnostica (area genitori): prova SEPARATAMENTE il permesso
+     del microfono e il riconoscimento vocale vero, per capire ESATTAMENTE
+     dove si blocca su un dispositivo che dà problemi — tipicamente
+     iPhone/Safari, specie se l'app è installata sulla schermata Home
+     invece che aperta nel browser (bug noto di Safari). */
+  function vaiDiagnosticaVoce() {
+    const installata = window.navigator.standalone === true ||
+      (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+
+    render(`
+      ${barra('🔬 Test microfono')}
+      <div class="genitori">
+        <p class="nota">Prova separatamente il permesso del microfono e il riconoscimento vocale, per capire dove si blocca su questo dispositivo.</p>
+        <div class="opzione">
+          <div class="etichetta">Come stai usando l'app ora</div>
+          <p class="nota">${installata
+            ? '📱 Installata sulla schermata Home. Su iPhone questa è spesso la causa dei problemi: Safari a volte non fa funzionare il riconoscimento vocale nelle app installate. Se il test qui sotto fallisce, prova ad aprire il sito direttamente da Safari (non dall\'icona in home) e ripeti il test.'
+            : '🌐 Aperta nel browser (non installata sulla schermata Home).'}</p>
+        </div>
+        <div class="opzione">
+          <div class="etichetta">Passo 1: permesso microfono</div>
+          <p class="nota" id="diag-mic">In attesa...</p>
+          <div class="barra-progresso" style="margin-top:8px"><div class="riempimento" id="diag-livello" style="width:0%"></div></div>
+        </div>
+        <div class="opzione">
+          <div class="etichetta">Passo 2: riconoscimento vocale</div>
+          <p class="nota" id="diag-riconoscimento">In attesa del passo 1...</p>
+        </div>
+        <div class="valori"><button class="btn-grande" id="btn-avvia-test">▶️ Avvia test</button></div>
+      </div>
+    `);
+
+    collegaCasa();
+
+    const micTesto = document.getElementById('diag-mic');
+    const livello = document.getElementById('diag-livello');
+    const riconTesto = document.getElementById('diag-riconoscimento');
+    const btnAvvia = document.getElementById('btn-avvia-test');
+
+    btnAvvia.addEventListener('click', async () => {
+      btnAvvia.disabled = true;
+      micTesto.textContent = '🎙️ Chiedo il permesso del microfono...';
+      riconTesto.textContent = 'In attesa del passo 1...';
+      livello.style.width = '0%';
+
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (e) {
+        micTesto.textContent = `❌ Permesso negato o microfono non disponibile (${e.name}). Controlla le impostazioni del browser/telefono per il microfono di questo sito.`;
+        btnAvvia.disabled = false;
+        return;
+      }
+
+      micTesto.textContent = '✅ Permesso concesso — parla un momento, la barra qui sotto deve muoversi...';
+      await misuraLivelloMicrofono(stream, livello);
+      stream.getTracks().forEach(t => t.stop());
+      micTesto.textContent = '✅ Microfono OK';
+
+      if (!riconoscimentoDisponibile()) {
+        riconTesto.textContent = '❌ Questo browser non offre il riconoscimento vocale.';
+        btnAvvia.disabled = false;
+        return;
+      }
+
+      riconTesto.textContent = '🎧 Ora prova a dire una parola qualsiasi ad alta voce (hai 8 secondi)...';
+      const recognition = new CostruttoreRiconoscimento();
+      recognition.lang = 'en-GB';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      const timeout = setTimeout(() => {
+        try { recognition.abort(); } catch {}
+        riconTesto.textContent = '❌ Nessuna risposta entro 8 secondi: il motore di riconoscimento non funziona su questo dispositivo/rete in questo momento' +
+          (installata ? " (prova ad aprire il sito da Safari invece che dall'icona in home)." : '.');
+        btnAvvia.disabled = false;
+      }, 8000);
+
+      recognition.onresult = (e) => {
+        clearTimeout(timeout);
+        const t = e.results[0] && e.results[0][0] && e.results[0][0].transcript;
+        riconTesto.textContent = `✅ Il riconoscimento FUNZIONA — ho capito: "${t || ''}"`;
+        btnAvvia.disabled = false;
+      };
+      recognition.onnomatch = () => {
+        clearTimeout(timeout);
+        riconTesto.textContent = '⚠️ Il motore ha risposto ma non ha capito la parola (nomatch): funziona, serve solo parlare più chiaro o più vicino.';
+        btnAvvia.disabled = false;
+      };
+      recognition.onerror = (e) => {
+        clearTimeout(timeout);
+        riconTesto.textContent = `❌ Errore del motore: "${e.error}".` +
+          (e.error === 'not-allowed' ? ' Il permesso per il riconoscimento vocale è diverso da quello generico del microfono: controllalo nelle impostazioni del browser.' : '');
+        btnAvvia.disabled = false;
+      };
+
+      try {
+        recognition.start();
+      } catch (e) {
+        clearTimeout(timeout);
+        riconTesto.textContent = `❌ Impossibile avviare il riconoscimento: ${e.message || e}`;
+        btnAvvia.disabled = false;
+      }
+    });
+  }
+
   // coriandoli sparsi (posizione/ritardo/durata casuali) che cadono per
   // tutta la schermata di livello superato, più ricchi del vecchio blocco fisso
   function coriandoliFesta() {
@@ -1853,6 +1987,7 @@
             <button class="btn-valore ${dispositivo.riconoscimentoVocale ? 'attivo' : ''}" data-opzione="riconoscimentoVocale" data-valore="true">🎤 Attivo</button>
             <button class="btn-valore ${!dispositivo.riconoscimentoVocale ? 'attivo' : ''}" data-opzione="riconoscimentoVocale" data-valore="false">🔇 Spento</button>
           </div>
+          <div class="valori"><button class="btn-valore" id="btn-diagnostica-voce">🔬 Prova il microfono</button></div>
         </div>` : `
         <div class="opzione">
           <div class="etichetta">Riconoscimento vocale (Inglese)</div>
@@ -1862,6 +1997,8 @@
     `);
 
     collegaCasa();
+    const btnDiagnostica = document.getElementById('btn-diagnostica-voce');
+    if (btnDiagnostica) btnDiagnostica.addEventListener('click', () => vaiDiagnosticaVoce());
 
     // le impostazioni di difficoltà sono del BAMBINO; voce/suoni/microfono del dispositivo
     app.querySelectorAll('.opzione .btn-valore[data-opzione]').forEach(btn => {

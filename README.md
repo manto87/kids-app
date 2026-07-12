@@ -37,7 +37,7 @@ dati — a parte il riconoscimento vocale opzionale della sezione Inglese
   - difficoltà adattiva on/off; in manuale, numero di scelte nel gioco (per bambino)
   - scrittura MAIUSCOLO/minuscolo (per bambino)
   - velocità della voce, voce e suoni di festa (per il dispositivo)
-  - riconoscimento vocale per l'Inglese on/off (per il dispositivo, spento di default, con nota sulla privacy)
+  - riconoscimento vocale per l'Inglese on/off (per il dispositivo, spento di default, con nota sulla privacy) e un test diagnostico "🔬 Prova il microfono" per capire se il problema è il permesso del microfono o il motore di riconoscimento — utile specialmente su iPhone, dove il riconoscimento a volte non funziona se l'app è installata sulla schermata Home invece che aperta nel browser
   - progressi per bambino con livello per attività e azzeramento
 
 ## Come provarla
