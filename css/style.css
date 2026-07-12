@@ -17,6 +17,7 @@
   --verde: #4caf7d;    --verde-chiaro: #ddf3e7;
   --arancio: #ef8b3a;  --arancio-chiaro: #fdeada;
   --viola: #9068c0;    --viola-chiaro: #ece2f8;
+  --rosa: #e0658f;     --rosa-chiaro: #fbe3ec;
   --rosso-soft: #e57373;
   --giallo: #f6c344;
 }
@@ -146,6 +147,7 @@ button {
 .btn-modulo.verde   { background: var(--verde-chiaro);   border: 4px solid var(--verde); }
 .btn-modulo.arancio { background: var(--arancio-chiaro); border: 4px solid var(--arancio); }
 .btn-modulo.viola   { background: var(--viola-chiaro);   border: 4px solid var(--viola); }
+.btn-modulo.rosa    { background: var(--rosa-chiaro);    border: 4px solid var(--rosa); }
 
 /* ---------- griglie di carte ---------- */
 
@@ -178,6 +180,7 @@ button {
 .modulo-blu .carta     { border-color: var(--blu-chiaro); }
 .modulo-verde .carta   { border-color: var(--verde-chiaro); }
 .modulo-arancio .carta { border-color: var(--arancio-chiaro); }
+.modulo-rosa .carta    { border-color: var(--rosa-chiaro); }
 
 /* ---------- schermata dettaglio (impara) ---------- */
 
@@ -393,6 +396,17 @@ button {
 .btn-grande:active { transform: translateY(3px); box-shadow: 0 3px 0 rgba(58,51,48,0.12); }
 
 .btn-grande.secondario { background: var(--carta); border-color: var(--blu-chiaro); }
+
+/* pulsante microfono mentre il riconoscimento vocale sta ascoltando */
+.btn-grande.in-ascolto {
+  background: var(--rosa-chiaro);
+  border-color: var(--rosa);
+  animation: ascolto-pulse 1.1s ease-in-out infinite;
+}
+@keyframes ascolto-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(224,101,143,0.45); }
+  50%      { box-shadow: 0 0 0 14px rgba(224,101,143,0); }
+}
 
 /* ---------- area genitori ---------- */
 

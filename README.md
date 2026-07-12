@@ -5,13 +5,16 @@ per bambini con deficit cognitivo.
 
 È una **PWA** (Progressive Web App): si apre dal browser, si installa sulla
 schermata home del telefono o del tablet come una vera app e funziona anche
-**senza connessione**. Non richiede installazioni da store né raccoglie dati.
+**senza connessione**. Non richiede installazioni da store e non raccoglie
+dati — a parte il riconoscimento vocale opzionale della sezione Inglese
+(spento di default, va acceso dal genitore): vedi sotto.
 
 ## Cosa contiene
 
 - **🔢 Numeri** — da 1 a 10, con il numero grande, gli oggetti da contare e la voce che li pronuncia.
 - **🔤 Lettere** — l'alfabeto italiano (21 lettere), ognuna con una parola e un'immagine ("A come Ape 🐝"). Nei momenti di insegnamento si sente il **suono** della lettera ("mm", non "emme"), come si insegna oggi a scuola — più naturale da collegare alla lettura, pronunciato molto lentamente per essere ben percepibile.
 - **🗣️ Parole** — prime parole divise in categorie semplici: Famiglia, Animali, Cibo, Oggetti.
+- **🇬🇧 Inglese** — prime parole semplici in inglese, per ora la categoria Famiglia (Mum, Dad, Grandma, Grandpa, Brother, Sister, Baby), pronunciate con voce e accento inglese. Oltre al solito gioco a tocco, se il genitore attiva il riconoscimento vocale (area genitori, spento di default) compare anche "🎤 Ripeti la parola": il bambino pronuncia la parola nel microfono e viene riconosciuta in modo tollerante (piccoli errori di pronuncia vanno bene), senza mai penalità. Disponibile solo sui dispositivi/browser che supportano il riconoscimento vocale; altrove resta comunque il gioco a tocco.
 - **🎮 Gioco "Ascolta e trova"** — in ogni sezione, con il pulsante sempre in cima: la voce chiede un elemento e il bambino lo tocca tra 2 (o 3) scelte grandi (per le lettere la voce pronuncia il suono). Nelle Parole le scelte mostrano prima solo la parola scritta: le figure compaiono come aiuto al terzo tentativo. Nessun tempo limite, nessuna penalità. Lo stesso numero/lettera/parola non si ripete mai per 2-3 round di fila, e dopo un complimento c'è una pausa naturale (si aspetta che la voce finisca di parlare) prima della domanda successiva.
 - **🧩 Gioco "Completa la parola"** — nella sezione Lettere: una parola con una lettera nascosta, si ascolta la parola e si sceglie la lettera mancante.
 - **🦊 Gino, la mascotte, sale di livello** — un traguardo globale per bambino: ogni 10 risposte giuste in QUALSIASI gioco Gino sale di livello (fino a 12), balla con un salto d'entrata ed esce festante con coriandoli sparsi (e un "ta-da" musicale). Nei primi 6 livelli sblocca accessori fissi che restano suoi per sempre — bandana, occhiali da sole, mantello da supereroe, corona, bacchetta magica. Dal livello 7 al 12 sblocca accessori **a tema stagionale** (cappellino, borsa, scarpe, un oggetto speciale, decorazioni fluttuanti e infine una corona suprema): ognuno assume l'aspetto della stagione reale in cui viene sbloccato la prima volta e resta così per sempre — un po' come i personaggi di Duolingo. Una barra di progresso con la miniatura di Gino (già vestito) mostra quanto manca al prossimo livello, al posto delle vecchie stelle.
@@ -33,6 +36,7 @@ schermata home del telefono o del tablet come una vera app e funziona anche
   - difficoltà adattiva on/off; in manuale, numero di scelte nel gioco (per bambino)
   - scrittura MAIUSCOLO/minuscolo (per bambino)
   - velocità della voce, voce e suoni di festa (per il dispositivo)
+  - riconoscimento vocale per l'Inglese on/off (per il dispositivo, spento di default, con nota sulla privacy)
   - progressi per bambino con livello per attività e azzeramento
 
 ## Come provarla

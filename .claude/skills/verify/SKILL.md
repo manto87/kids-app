@@ -141,6 +141,36 @@ npx http-server /path/al/repo -p 8321 -s     # oppure python3 -m http.server
     dover rigiocare decine di round — attenzione: dev'essere un multiplo di 10 MENO 1
     prima dell'ultima risposta giusta, es. 69 per arrivare a livello 8 con quella
     risposta) e `scratchpad/verify-stagioni.js` (fissaggio stagione per livello 7-12).
+15. Inglese (`DATA.inglese`, stessa struttura di `DATA.parole`: categorie → items;
+    per ora solo la categoria Famiglia, 7 parole: Mum/Dad/Grandma/Grandpa/
+    Brother/Sister/Baby). `vaiCategorie(idModulo)`/`vaiCategoria(idModulo, cat)`
+    sono generiche (usate sia da Parole sia da Inglese, leggono
+    `DATA[idModulo].titolo/emoji/colore`). Tutta la pronuncia delle parole
+    inglesi (dettaglio, gioco Trova, Ripeti) passa `{ lingua: 'en' }` a `parla()`,
+    che imposta `u.lang='en-GB'` e usa `voceInglese` invece di `voceItaliana`
+    (spiare `u.lang`/`u.text` per verificare — i complimenti restano sempre
+    in italiano). Il gioco Trova per l'inglese si comporta come per le parole
+    italiane (carta sbagliata non si disabilita, figura dopo 2 errori:
+    `if (idModulo === 'parole' || idModulo === 'inglese')`).
+
+    Riconoscimento vocale (`🎤 Ripeti la parola`, SOLO Inglese): richiede
+    ENTRAMBE `dispositivo.riconoscimentoVocale === true` (interruttore in
+    area genitori, spento di default, consenso esplicito perché l'audio va a
+    un servizio cloud) E `riconoscimentoDisponibile()` (il browser espone
+    `SpeechRecognition`/`webkitSpeechRecognition`) — altrimenti il pulsante
+    non esiste nel DOM. In headless non c'è un motore vocale reale: mockare
+    `window.SpeechRecognition` con `page.addInitScript` PRIMA di `page.goto`,
+    con una classe finta che il test controlla (`start()` non fa nulla di
+    reale, il test invoca a piacere `recognitionInstance.onresult({results:
+    [[{transcript: '...'}]]})` o `.onerror({error: 'no-speech'})` seguito da
+    `.onend()`). `pronunciaRiconosciuta(trascrizione, bersaglio)` accetta
+    corrispondenza esatta, parola intera contenuta, o distanza di
+    Levenshtein ≤1 (funzione `distanza()`) — tollerante a piccoli errori di
+    trascrizione, MAI una penalità vera (si può sempre riprovare). Le
+    callback controllano `generazione` (stesso meccanismo di `dopo()`) prima
+    di toccare il DOM, e il pulsante 🏠 chiama `recognition.abort()` se si
+    naviga via mentre si sta ascoltando. Verificare con
+    `scratchpad/verify-inglese.js`.
 
 ## Attenzioni
 
