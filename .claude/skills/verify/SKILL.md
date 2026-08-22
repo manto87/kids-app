@@ -237,6 +237,39 @@ npx http-server /path/al/repo -p 8321 -s     # oppure python3 -m http.server
     eventualmente `Object.defineProperty(window.navigator, 'standalone',
     {value:true})` per simulare l'installazione. Verificare con
     `scratchpad/verify-diagnostica-voce.js`.
+18. Matematica (`vai-matematica` in home → `vaiMatematica()`, menu con
+    "🔷 Forme e Figure" e "➕ Problemi"). Prima e unica attività dell'app
+    con una vera **tastiera numerica** (`tastieraNumericaHtml()`/
+    `collegaTastieraNumerica(onConferma)`, componente condiviso da
+    entrambi i giochi): cifre `.tasto-num[data-tasto="0".."9"]`, `⌫`
+    (`data-tasto="cancella"`), `✓` (`data-tasto="conferma"`), display
+    `#tastiera-display`. Nei test: cliccare le cifre una a una poi
+    `conferma` — niente tastiera fisica da simulare.
+    - **Forme e Figure** (`DATA.forme`): ogni figura (`figure[].forme`,
+      renderizzata da `renderaForma()` come SVG inline — nessuna immagine
+      esterna) è fatta solo con le 4 combinazioni tipo+colore della
+      `legenda`. I conteggi corretti si CALCOLANO a runtime raggruppando
+      `figura.forme` per tipo+colore — mai scritti a mano, quindi non
+      possono disallinearsi dal disegno. Per verificare in modo
+      deterministico quale sia la risposta attesa (la figura e la domanda
+      sono scelte a caso a ogni ingresso, via `scegliBersaglio`), NON
+      indovinare: leggere dal DOM il `viewBox` di `.figura-svg` per capire
+      quale figura è stata scelta, il testo di `.forme-domanda` per capire
+      quale combinazione tipo+colore si sta chiedendo, e ricalcolare il
+      conteggio da `DATA.forme.figure[...].forme` — vedi
+      `scratchpad/verify-matematica.js`. Risposta sbagliata → nessuna
+      penalità, la tastiera si svuota con la classe `.scossa` (stesso
+      `@keyframes scuoti`) e si riprova sulla STESSA domanda (lo schermo
+      non si ridisegna); risposta giusta → si passa alla domanda
+      successiva della stessa figura o, se erano finite, a una nuova
+      figura, con lo stesso smistamento verso `vaiLivelloSuperato` degli
+      altri giochi.
+    - **Problemi** (`DATA.problemi.elenco`): ogni problema ha `op` (`'+'`
+      o `'-'`), `a`, `b`, `testo` (con placeholder `{a}`/`{b}`) ed
+      `emojiA`/`emojiB`. Il risultato atteso si CALCOLA (`a+b` o `a-b`),
+      mai scritto a mano — verificare leggendo `.problema-testo` dal DOM,
+      trovando il problema corrispondente in `DATA.problemi.elenco` e
+      ricalcolando il risultato, poi digitarlo sulla tastiera.
 
 ## Attenzioni
 
