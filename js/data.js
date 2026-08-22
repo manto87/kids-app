@@ -268,6 +268,84 @@ const DATA = {
       } },
     ],
   },
+
+  forme: {
+    id: 'forme',
+    titolo: 'Forme e Figure',
+    emoji: '🔷',
+    /* Legenda fissa: ogni figura è fatta SOLO con queste 4 combinazioni
+       tipo+colore, come nel foglio cartaceo di riferimento. I conteggi
+       corretti si calcolano a runtime dalle "forme" di ogni figura
+       (js/app.js, vaiForme) — non sono mai scritti a mano, così non
+       possono disallinearsi dal disegno. */
+    legenda: [
+      { tipo: 'cerchio',    colore: 'giallo', nome: 'cerchi gialli' },
+      { tipo: 'triangolo',  colore: 'blu',    nome: 'triangoli blu' },
+      { tipo: 'rettangolo', colore: 'verde',  nome: 'rettangoli verdi' },
+      { tipo: 'quadrato',   colore: 'rosso',  nome: 'quadrati rossi' },
+    ],
+    figure: [
+      { id: 'razzo', viewBox: '0 0 240 300', forme: [
+        { tipo: 'rettangolo', colore: 'verde',  x: 90, y: 100, w: 60, h: 140 },
+        { tipo: 'triangolo',  colore: 'blu',    punti: '90,100 150,100 120,40' },
+        { tipo: 'cerchio',    colore: 'giallo', cx: 120, cy: 140, r: 14 },
+        { tipo: 'cerchio',    colore: 'giallo', cx: 120, cy: 180, r: 14 },
+        { tipo: 'cerchio',    colore: 'giallo', cx: 120, cy: 220, r: 14 },
+        { tipo: 'quadrato',   colore: 'rosso',  x: 60, y: 210, w: 30, h: 30 },
+        { tipo: 'quadrato',   colore: 'rosso',  x: 150, y: 210, w: 30, h: 30 },
+      ] },
+      { id: 'trenino', viewBox: '0 0 320 200', forme: [
+        { tipo: 'rettangolo', colore: 'verde',  x: 20, y: 80, w: 90, h: 70 },
+        { tipo: 'rettangolo', colore: 'verde',  x: 120, y: 80, w: 90, h: 70 },
+        { tipo: 'quadrato',   colore: 'rosso',  x: 220, y: 60, w: 70, h: 90 },
+        { tipo: 'cerchio',    colore: 'giallo', cx: 45, cy: 165, r: 14 },
+        { tipo: 'cerchio',    colore: 'giallo', cx: 95, cy: 165, r: 14 },
+        { tipo: 'cerchio',    colore: 'giallo', cx: 145, cy: 165, r: 14 },
+        { tipo: 'cerchio',    colore: 'giallo', cx: 195, cy: 165, r: 14 },
+        { tipo: 'triangolo',  colore: 'blu',    punti: '35,80 55,80 45,55' },
+        { tipo: 'triangolo',  colore: 'blu',    punti: '135,80 155,80 145,55' },
+      ] },
+      { id: 'casetta', viewBox: '0 0 240 240', forme: [
+        { tipo: 'quadrato',   colore: 'rosso',  x: 60, y: 110, w: 120, h: 100 },
+        { tipo: 'triangolo',  colore: 'blu',    punti: '50,110 190,110 120,50' },
+        { tipo: 'rettangolo', colore: 'verde',  x: 105, y: 160, w: 30, h: 50 },
+        { tipo: 'cerchio',    colore: 'giallo', cx: 85, cy: 140, r: 16 },
+        { tipo: 'cerchio',    colore: 'giallo', cx: 155, cy: 140, r: 16 },
+      ] },
+    ],
+  },
+
+  problemi: {
+    id: 'problemi',
+    titolo: 'Problemi',
+    emoji: '➕',
+    /* Il risultato non è mai scritto a mano: si calcola da a/op/b a
+       runtime (js/app.js, vaiProblemi). Sottrazioni sempre con b <= a,
+       risultati sempre nell'intervallo 0-10 (coerente col range insegnato
+       in Numeri). */
+    elenco: [
+      { id: 'pr-veicoli',    op: '+', a: 3, b: 4, emojiA: '🚗', emojiB: '🏍️',
+        testo: 'In un parcheggio ci sono {a} automobili e {b} motociclette. Quanti veicoli ci sono in tutto?' },
+      { id: 'pr-mele',       op: '-', a: 7, b: 2, emojiA: '🍎',
+        testo: 'Ci sono {a} mele. Ne mangi {b}. Quante mele restano?' },
+      { id: 'pr-animali',    op: '+', a: 4, b: 2, emojiA: '🐱', emojiB: '🐶',
+        testo: 'In giardino ci sono {a} gatti e {b} cani. Quanti animali ci sono in tutto?' },
+      { id: 'pr-caramelle',  op: '-', a: 9, b: 4, emojiA: '🍬',
+        testo: 'Hai {a} caramelle. Ne mangi {b}. Quante caramelle restano?' },
+      { id: 'pr-uccellini',  op: '-', a: 6, b: 2, emojiA: '🐦',
+        testo: 'Ci sono {a} uccellini su un ramo. {b} volano via. Quanti uccellini restano?' },
+      { id: 'pr-palline',    op: '+', a: 2, b: 5, emojiA: '⚽', emojiB: '🎾',
+        testo: 'Nel cesto ci sono {a} palloni e {b} palline. Quanti oggetti ci sono in tutto?' },
+      { id: 'pr-fiori',      op: '+', a: 5, b: 3, emojiA: '🌹', emojiB: '🌻',
+        testo: 'In giardino ci sono {a} rose e {b} girasoli. Quanti fiori ci sono in tutto?' },
+      { id: 'pr-biscotti',   op: '-', a: 8, b: 3, emojiA: '🍪',
+        testo: 'Ci sono {a} biscotti nel piatto. Ne mangi {b}. Quanti biscotti restano?' },
+      { id: 'pr-palloncini', op: '+', a: 6, b: 2, emojiA: '🎈', emojiB: '🎈',
+        testo: 'Ci sono {a} palloncini alla festa. Ne arrivano altri {b}. Quanti palloncini ci sono adesso?' },
+      { id: 'pr-pesci',      op: '-', a: 10, b: 4, emojiA: '🐟',
+        testo: "Nell'acquario ci sono {a} pesci. {b} vengono spostati in un altro acquario. Quanti pesci restano?" },
+    ],
+  },
 };
 
 /* Frasi di rinforzo positivo e di incoraggiamento (mai punitive).

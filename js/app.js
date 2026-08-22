@@ -803,6 +803,7 @@
       </div>
       <div class="menu-moduli">
         <button class="btn-modulo blu" id="vai-numeri"><span class="emoji">🔢</span> Numeri</button>
+        <button class="btn-modulo indaco" id="vai-matematica"><span class="emoji">🧮</span> Matematica</button>
         <button class="btn-modulo verde" id="vai-lettere"><span class="emoji">🔤</span> Lettere</button>
         <button class="btn-modulo turchese" id="vai-sillabe"><span class="emoji">🧩</span> Sillabe</button>
         <button class="btn-modulo arancio" id="vai-parole"><span class="emoji">🗣️</span> Parole</button>
@@ -812,6 +813,7 @@
     `);
 
     document.getElementById('vai-numeri').addEventListener('click', () => { parla('Numeri!'); vaiModulo('numeri'); });
+    document.getElementById('vai-matematica').addEventListener('click', () => { parla('Matematica!'); vaiMatematica(); });
     document.getElementById('vai-lettere').addEventListener('click', () => { parla('Lettere!'); vaiModulo('lettere'); });
     document.getElementById('vai-sillabe').addEventListener('click', () => { parla('Sillabe!'); vaiSillabeGruppi(); });
     document.getElementById('vai-parole').addEventListener('click', () => { parla('Parole!'); vaiCategorie('parole'); });
@@ -1082,6 +1084,191 @@
 
     app.querySelectorAll('.sillaba-tile').forEach(tile => {
       tile.addEventListener('pointerdown', (ev) => { ev.preventDefault(); avviaTrascinamento(tile, ev); });
+    });
+  }
+
+  /* ---------- MATEMATICA: forme e figure, problemi ----------
+     Prima e unica attività dell'app con una vera tastiera numerica
+     (0-9 + cancella + conferma): più fedele al foglio cartaceo (casella
+     vuota da riempire) rispetto alla scelta a tocco usata altrove. */
+
+  function tastieraNumericaHtml() {
+    const tasti = [1, 2, 3, 4, 5, 6, 7, 8, 9].map(n =>
+      `<button class="tasto-num" data-tasto="${n}">${n}</button>`).join('');
+    return `
+      <div class="tastiera">
+        <div class="tastiera-display" id="tastiera-display">?</div>
+        <div class="tastiera-tasti">
+          ${tasti}
+          <button class="tasto-num tasto-azione" data-tasto="cancella" aria-label="Cancella">⌫</button>
+          <button class="tasto-num" data-tasto="0">0</button>
+          <button class="tasto-num tasto-conferma" data-tasto="conferma" aria-label="Conferma">✓</button>
+        </div>
+      </div>`;
+  }
+
+  // onConferma(numero, pulisci) — pulisci() svuota il display per riprovare
+  function collegaTastieraNumerica(onConferma) {
+    let inserito = '';
+    const display = document.getElementById('tastiera-display');
+    const aggiorna = () => { display.textContent = inserito || '?'; };
+    const pulisci = () => { inserito = ''; aggiorna(); };
+    app.querySelectorAll('.tasto-num').forEach(tasto => {
+      tasto.addEventListener('click', () => {
+        const t = tasto.dataset.tasto;
+        if (t === 'cancella') { inserito = inserito.slice(0, -1); aggiorna(); }
+        else if (t === 'conferma') { if (inserito !== '') onConferma(Number(inserito), pulisci); }
+        else if (inserito.length < 2) { inserito += t; aggiorna(); }
+      });
+    });
+  }
+
+  // scuote il display della tastiera per segnalare una risposta sbagliata
+  // (nessuna vera penalità: si può sempre riprovare subito)
+  function scuotiTastiera() {
+    const el = document.getElementById('tastiera-display');
+    if (!el) return;
+    el.classList.add('scossa');
+    dopo(400, () => el.classList.remove('scossa'));
+  }
+
+  function vaiMatematica() {
+    render(`
+      ${barra('🧮 Matematica')}
+      <div class="menu-moduli" style="justify-content:center">
+        <button class="btn-modulo indaco" id="vai-forme"><span class="emoji">🔷</span> Forme e Figure</button>
+        <button class="btn-modulo indaco" id="vai-problemi"><span class="emoji">➕</span> Problemi</button>
+      </div>
+    `);
+    collegaCasa();
+    document.getElementById('vai-forme').addEventListener('click', () => { parla('Forme e Figure!'); vaiForme(); });
+    document.getElementById('vai-problemi').addEventListener('click', () => { parla('Problemi!'); vaiProblemi(); });
+  }
+
+  // disegna una forma (SVG) dal suo tipo/colore; "rosso" è l'unica
+  // combinazione che non ha una variabile CSS con lo stesso nome
+  function renderaForma(f) {
+    const colore = `var(--${f.colore === 'rosso' ? 'rosso-soft' : f.colore})`;
+    if (f.tipo === 'cerchio') return `<circle cx="${f.cx}" cy="${f.cy}" r="${f.r}" fill="${colore}" stroke="#3a3330" stroke-width="3"/>`;
+    if (f.tipo === 'triangolo') return `<polygon points="${f.punti}" fill="${colore}" stroke="#3a3330" stroke-width="3"/>`;
+    return `<rect x="${f.x}" y="${f.y}" width="${f.w}" height="${f.h}" rx="6" fill="${colore}" stroke="#3a3330" stroke-width="3"/>`;
+  }
+
+  // piccola icona 40x40 della stessa forma/colore, per illustrare la domanda
+  function iconaFormaSvg(tipo, colore) {
+    const forma =
+      tipo === 'cerchio'   ? { tipo, colore, cx: 20, cy: 20, r: 16 } :
+      tipo === 'triangolo' ? { tipo, colore, punti: '20,4 36,32 4,32' } :
+      tipo === 'quadrato'  ? { tipo, colore, x: 4, y: 4, w: 32, h: 32 } :
+                              { tipo, colore, x: 2, y: 10, w: 36, h: 20 };
+    return `<svg class="icona-svg" viewBox="0 0 40 40">${renderaForma(forma)}</svg>`;
+  }
+
+  /* ---------- GIOCO "FORME E FIGURE" ----------
+     Una figura composta da forme geometriche colorate; si conta quante
+     forme di un certo tipo+colore ci sono e si scrive il numero. I
+     conteggi corretti si calcolano dalle "forme" della figura, mai
+     scritti a mano — non possono disallinearsi dal disegno. */
+  function vaiForme() {
+    const figura = scegliBersaglio(DATA.forme.figure, 'forme');
+
+    const conteggi = {};
+    figura.forme.forEach(f => {
+      const chiave = f.tipo + '-' + f.colore;
+      conteggi[chiave] = (conteggi[chiave] || 0) + 1;
+    });
+    const domande = Object.keys(conteggi).map(chiave => {
+      const [tipo, colore] = chiave.split('-');
+      const voce = DATA.forme.legenda.find(l => l.tipo === tipo && l.colore === colore);
+      return { tipo, colore, corretto: conteggi[chiave], nome: voce.nome };
+    }).sort(() => Math.random() - 0.5);
+
+    let indice = 0;
+
+    function disegna() {
+      const d = domande[indice];
+      const domandaTesto = `Quanti ${d.nome}?`;
+
+      render(`
+        ${barra('🔷 Forme e Figure')}
+        ${barraLivello()}
+        <svg class="figura-svg" viewBox="${figura.viewBox}">${figura.forme.map(renderaForma).join('')}</svg>
+        <div class="forme-domanda">${iconaFormaSvg(d.tipo, d.colore)} ${domandaTesto}</div>
+        ${tastieraNumericaHtml()}
+      `);
+
+      collegaCasa();
+      parla(domandaTesto);
+
+      collegaTastieraNumerica((numero, pulisci) => {
+        const itemId = figura.id + '-' + d.tipo + '-' + d.colore;
+        if (numero === d.corretto) {
+          festeggiaMascotte();
+          const salito = registra('forme', itemId, true);
+          indice++;
+          const finito = indice >= domande.length;
+          const dopoLode = salito
+            ? () => vaiLivelloSuperato(() => vaiForme(), livelloGlobale(P()))
+            : finito ? () => vaiForme() : () => disegna();
+          parlaEPoi(lode(), { festa: true }, dopoLode);
+        } else {
+          registra('forme', itemId, false);
+          pulisci();
+          scuotiTastiera();
+          parla(incoraggiamento());
+        }
+      });
+    }
+
+    disegna();
+  }
+
+  /* ---------- GIOCO "PROBLEMI" ----------
+     Un breve problema di addizione o sottrazione, con gli oggetti
+     mostrati a icone; si scrive il risultato finale. Il risultato non è
+     mai scritto a mano nel dato, si calcola da a/op/b. */
+  function vaiProblemi() {
+    const problema = scegliBersaglio(DATA.problemi.elenco, 'problemi');
+    const risultato = problema.op === '+' ? problema.a + problema.b : problema.a - problema.b;
+    const testo = problema.testo.replace('{a}', problema.a).replace('{b}', problema.b);
+
+    let oggettiHtml;
+    if (problema.op === '+') {
+      const oggettiA = Array(problema.a).fill(`<span>${problema.emojiA}</span>`).join('');
+      const oggettiB = Array(problema.b).fill(`<span>${problema.emojiB}</span>`).join('');
+      oggettiHtml = `${oggettiA}<span class="segno">+</span>${oggettiB}`;
+    } else {
+      // sottrazione: si vedono tutti gli oggetti, gli ultimi "b" attenuati
+      // per rappresentare quelli tolti
+      oggettiHtml = Array.from({ length: problema.a }, (_, i) =>
+        `<span class="${i >= problema.a - problema.b ? 'tolto' : ''}">${problema.emojiA}</span>`).join('');
+    }
+
+    render(`
+      ${barra(problema.op === '+' ? '➕ Problemi' : '➖ Problemi')}
+      ${barraLivello()}
+      <div class="problema-testo">${testo}</div>
+      <div class="problema-oggetti">${oggettiHtml}</div>
+      ${tastieraNumericaHtml()}
+    `);
+
+    collegaCasa();
+    parla(testo);
+
+    collegaTastieraNumerica((numero, pulisci) => {
+      if (numero === risultato) {
+        festeggiaMascotte();
+        const salito = registra('problemi', problema.id, true);
+        const dopoLode = salito
+          ? () => vaiLivelloSuperato(() => vaiProblemi(), livelloGlobale(P()))
+          : () => vaiProblemi();
+        parlaEPoi(lode(), { festa: true }, dopoLode);
+      } else {
+        registra('problemi', problema.id, false);
+        pulisci();
+        scuotiTastiera();
+        parla(incoraggiamento());
+      }
     });
   }
 
