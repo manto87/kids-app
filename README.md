@@ -12,11 +12,12 @@ dati — a parte il riconoscimento vocale opzionale della sezione Inglese
 ## Cosa contiene
 
 - **🔢 Numeri** — da 1 a 10, con il numero grande, gli oggetti da contare e la voce che li pronuncia.
-- **🧮 Matematica** — due attività, prima volta con una vera **tastiera numerica** (0-9, ⌫, ✓) invece della scelta a tocco usata altrove, per scrivere davvero il numero come su un foglio:
-  - **🔷 Forme e Figure** — un disegno fatto di forme geometriche colorate (cerchio giallo, triangolo blu, rettangolo verde, quadrato rosso), si conta quante ce ne sono di un certo tipo+colore e si scrive il numero.
-  - **➕ Problemi** — brevi problemi di addizione e sottrazione con oggetti illustrati a icone (es. "3 automobili e 4 motociclette: quanti veicoli in tutto?"), si scrive il risultato.
-  
-  Nessuna penalità sulla risposta sbagliata: la tastiera si svuota con un piccolo scuotimento e si riprova subito.
+- **🧮 Matematica** — tre attività:
+  - **🔷 Forme e Figure** — un disegno fatto di forme geometriche colorate (cerchio giallo, triangolo blu, rettangolo verde, quadrato rosso), si conta quante ce ne sono di un certo tipo+colore e si scrive il numero con una vera **tastiera numerica** (0-9, ⌫, ✓) — prima volta nell'app, invece della scelta a tocco usata altrove, per scrivere davvero il numero come su un foglio.
+  - **➕ Problemi** — brevi problemi di addizione e sottrazione con oggetti illustrati a icone (es. "3 automobili e 4 motociclette: quanti veicoli in tutto?"), si scrive il risultato con la tastiera numerica.
+  - **➖ La Linea dei Numeri** — ispirata alla "linea del 10/20" del metodo analogico di Camillo Bortolato: una fila di tasti numerati, raggruppati in blocchi da 5 (come le dita delle mani) e colorati diversamente per la prima e la seconda decina. Si "cammina" lungo la linea toccando i tasti **uno alla volta** nella direzione giusta (avanti per addizione, indietro per sottrazione), partendo da un numero evidenziato — il modo in cui il metodo Bortolato insegna il calcolo mentale senza contare con le dita, riconoscendo le quantità a colpo d'occhio. Per i calcoli entro il 10 si usa la linea del 10, per quelli che superano il 10 la linea del 20 si attiva da sola.
+
+  Nessuna penalità sulla risposta sbagliata in nessuna delle tre: la tastiera (o il tasto toccato) si scuote un momento e si riprova subito.
 - **🔤 Lettere** — l'alfabeto italiano (21 lettere), ognuna con una parola e un'immagine ("A come Ape 🐝"). Nei momenti di insegnamento si sente il **suono** della lettera ("mm", non "emme"), come si insegna oggi a scuola — più naturale da collegare alla lettura, pronunciato molto lentamente per essere ben percepibile.
 - **🧩 Sillabe** — esercizio di lettura sillabica ispirato ai fogli usati a scuola: 5 gruppi di lettere per ora (B, C, F, M, S), ciascuno con le sue 5 sillabe (BA/BE/BI/BO/BU...) da **trascinare** con il dito sullo spazio vuoto della parola giusta, scelta guardando il disegno (es. BA + NANA = banana 🍌). Ogni sillaba ha più parole possibili (es. BA → banana o balena): a ogni ingresso nel gioco se ne pesca una a caso, così lo stesso gruppo non propone sempre le stesse parole. Trascinamento vero, nessuna penalità sul tentativo sbagliato: la sillaba torna semplicemente al suo posto e si può riprovare.
 - **🗣️ Parole** — prime parole divise in categorie semplici: Famiglia, Animali, Cibo, Oggetti.

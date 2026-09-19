@@ -270,6 +270,29 @@ npx http-server /path/al/repo -p 8321 -s     # oppure python3 -m http.server
       mai scritto a mano — verificare leggendo `.problema-testo` dal DOM,
       trovando il problema corrispondente in `DATA.problemi.elenco` e
       ricalcolando il risultato, poi digitarlo sulla tastiera.
+    - **La Linea dei Numeri** (`DATA.lineaNumeri.elenco`, terza voce del
+      menu Matematica, `vaiLineaNumeri()`): ispirata alla linea del 10/20
+      del metodo analogico di Camillo Bortolato — NON tastiera numerica,
+      si tocca ogni tasto `.tasto-linea[data-numero]` UNO ALLA VOLTA,
+      avanti per `+` o indietro per `-`, partendo dal tasto `a` (già
+      `.corrente` all'ingresso). `maxServito = Math.max(a, risultato)`:
+      se `<= 10` si mostrano 10 tasti (linea del 10), altrimenti 20
+      (linea del 20) con `.decina-1` (1-10) e `.decina-2` (11-20) di
+      colore diverso, raggruppati in blocchi da 5 (`.linea-gruppo`) come
+      i gruppi di dita dello strumento originale. Tap corretto → il tasto
+      lasciato diventa `.visitato` (scia del percorso), il nuovo diventa
+      `.corrente`; al passo numero `b` si raggiunge il traguardo (stesso
+      smistamento verso `vaiLivelloSuperato` degli altri giochi). Tap
+      sbagliato → SOLO quel tasto si scuote (`.scossa`), il percorso non
+      avanza, nessuna penalità, si può ritoccare il tasto giusto subito.
+      ATTENZIONE nei test Playwright: `.tasto-linea.corrente` ha
+      `animation: pulsa` continua, quindi Playwright lo considera "mai
+      stabile" e un click su di esso va in timeout — non cliccarlo mai
+      direttamente nei test (scegliere un tasto "sbagliato" diverso dal
+      corrente per testare un tap sbagliato). La domanda è scelta a caso
+      a ogni ingresso: leggere dal DOM il testo "Parti da {a}. {Aggiungi/
+      Togli} {b}." per sapere quale problema è stato estratto, non
+      indovinare. Verificare con `scratchpad/verify-linea-numeri.js`.
 
 ## Attenzioni
 
