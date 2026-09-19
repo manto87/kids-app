@@ -876,6 +876,50 @@ button {
 
 .tastiera-display.scossa { animation: scuoti 0.4s ease; }
 
+/* ---------- la linea dei numeri (metodo Bortolato) ---------- */
+
+.linea-numeri {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.linea-gruppo {
+  display: flex;
+  gap: 8px;
+}
+
+.tasto-linea {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  box-shadow: var(--ombra);
+  font-size: 22px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid transparent;
+}
+
+.tasto-linea:active { transform: translateY(3px); box-shadow: 0 3px 0 rgba(58,51,48,0.12); }
+
+.tasto-linea.decina-1 { background: var(--blu-chiaro); color: var(--blu); }
+.tasto-linea.decina-2 { background: var(--arancio-chiaro); color: var(--arancio); }
+
+.tasto-linea.corrente {
+  border-color: var(--verde);
+  background: var(--verde-chiaro);
+  color: var(--verde);
+  animation: pulsa 1.4s ease-in-out infinite;
+}
+
+.tasto-linea.visitato { opacity: 0.55; }
+
+.tasto-linea.scossa { animation: scuoti 0.4s ease; }
+
 /* ---------- scrivi (dettato sulla lavagna) ---------- */
 
 .lavagna {

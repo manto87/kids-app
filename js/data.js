@@ -346,6 +346,32 @@ const DATA = {
         testo: "Nell'acquario ci sono {a} pesci. {b} vengono spostati in un altro acquario. Quanti pesci restano?" },
     ],
   },
+
+  lineaNumeri: {
+    id: 'linea',
+    titolo: 'La Linea dei Numeri',
+    emoji: '➖',
+    /* Ispirata alla "linea del 20" del metodo analogico di Camillo
+       Bortolato: si conta toccando i tasti uno alla volta, in avanti per
+       addizione o indietro per sottrazione. Se il calcolo resta entro il
+       10 si mostra la linea del 10 (js/app.js, vaiLineaNumeri sceglie in
+       base a max(a, risultato)); altrimenti la linea del 20, coi due
+       colori del cambio decina come nello strumento originale. Il
+       risultato non è mai scritto a mano, si calcola da a/op/b.
+       Sottrazioni sempre con b <= a, tutto entro 0-20. */
+    elenco: [
+      { id: 'ln-1',  op: '+', a: 3,  b: 4 },
+      { id: 'ln-2',  op: '+', a: 6,  b: 3 },
+      { id: 'ln-3',  op: '-', a: 8,  b: 5 },
+      { id: 'ln-4',  op: '-', a: 10, b: 4 },
+      { id: 'ln-5',  op: '+', a: 8,  b: 5 },
+      { id: 'ln-6',  op: '+', a: 7,  b: 6 },
+      { id: 'ln-7',  op: '-', a: 14, b: 5 },
+      { id: 'ln-8',  op: '-', a: 16, b: 7 },
+      { id: 'ln-9',  op: '+', a: 12, b: 6 },
+      { id: 'ln-10', op: '-', a: 20, b: 8 },
+    ],
+  },
 };
 
 /* Frasi di rinforzo positivo e di incoraggiamento (mai punitive).

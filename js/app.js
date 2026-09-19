@@ -1138,11 +1138,13 @@
       <div class="menu-moduli" style="justify-content:center">
         <button class="btn-modulo indaco" id="vai-forme"><span class="emoji">🔷</span> Forme e Figure</button>
         <button class="btn-modulo indaco" id="vai-problemi"><span class="emoji">➕</span> Problemi</button>
+        <button class="btn-modulo indaco" id="vai-linea"><span class="emoji">➖</span> La Linea dei Numeri</button>
       </div>
     `);
     collegaCasa();
     document.getElementById('vai-forme').addEventListener('click', () => { parla('Forme e Figure!'); vaiForme(); });
     document.getElementById('vai-problemi').addEventListener('click', () => { parla('Problemi!'); vaiProblemi(); });
+    document.getElementById('vai-linea').addEventListener('click', () => { parla('La linea dei numeri!'); vaiLineaNumeri(); });
   }
 
   // disegna una forma (SVG) dal suo tipo/colore; "rosso" è l'unica
@@ -1269,6 +1271,80 @@
         scuotiTastiera();
         parla(incoraggiamento());
       }
+    });
+  }
+
+  /* ---------- GIOCO "LA LINEA DEI NUMERI" ----------
+     Ispirato alla linea del 10/20 del metodo analogico di Camillo
+     Bortolato: si conta toccando i tasti UNO ALLA VOLTA, in avanti per
+     addizione o indietro per sottrazione — non si scrive il risultato,
+     si "cammina" lungo la linea come con lo strumento fisico. Se il
+     calcolo resta entro il 10 si mostra la linea del 10, altrimenti la
+     linea del 20 coi due colori del cambio decina. */
+  function vaiLineaNumeri() {
+    const problema = scegliBersaglio(DATA.lineaNumeri.elenco, 'linea');
+    const risultato = problema.op === '+' ? problema.a + problema.b : problema.a - problema.b;
+    const maxServito = Math.max(problema.a, risultato);
+    const totaleTasti = maxServito > 10 ? 20 : 10;
+
+    // tasti raggruppati in blocchi da 5 (come i gruppi di dita nello
+    // strumento originale): il gap maggiore fra gruppi crea la
+    // separazione visiva, quello interno tiene vicini i 5 tasti
+    let gruppiHtml = '';
+    for (let inizio = 1; inizio <= totaleTasti; inizio += 5) {
+      let tastiGruppo = '';
+      for (let n = inizio; n < inizio + 5 && n <= totaleTasti; n++) {
+        const decina = n <= 10 ? 'decina-1' : 'decina-2';
+        const corrente = n === problema.a ? ' corrente' : '';
+        tastiGruppo += `<button class="tasto-linea ${decina}${corrente}" id="tasto-linea-${n}" data-numero="${n}">${n}</button>`;
+      }
+      gruppiHtml += `<div class="linea-gruppo">${tastiGruppo}</div>`;
+    }
+
+    const verbo = problema.op === '+' ? 'Aggiungi' : 'Togli';
+    const testo = `Parti da ${problema.a}. ${verbo} ${problema.b}.`;
+
+    render(`
+      ${barra('➖ La Linea dei Numeri')}
+      ${barraLivello()}
+      <div class="problema-testo">${testo}</div>
+      <div class="linea-numeri">${gruppiHtml}</div>
+    `);
+
+    collegaCasa();
+    parla(testo);
+
+    let posizione = problema.a;
+    let passiFatti = 0;
+
+    app.querySelectorAll('.tasto-linea').forEach(tasto => {
+      tasto.addEventListener('click', () => {
+        if (passiFatti >= problema.b) return; // traguardo già raggiunto
+        const numero = Number(tasto.dataset.numero);
+        const atteso = problema.op === '+' ? posizione + 1 : posizione - 1;
+
+        if (numero === atteso) {
+          const tastoAttuale = document.getElementById('tasto-linea-' + posizione);
+          if (tastoAttuale) { tastoAttuale.classList.remove('corrente'); tastoAttuale.classList.add('visitato'); }
+          tasto.classList.add('corrente');
+          posizione = numero;
+          passiFatti++;
+
+          if (passiFatti === problema.b) {
+            festeggiaMascotte();
+            const salito = registra('linea', problema.id, true);
+            const dopoLode = salito
+              ? () => vaiLivelloSuperato(() => vaiLineaNumeri(), livelloGlobale(P()))
+              : () => vaiLineaNumeri();
+            parlaEPoi(lode(), { festa: true }, dopoLode);
+          }
+        } else {
+          registra('linea', problema.id, false);
+          tasto.classList.add('scossa');
+          dopo(400, () => tasto.classList.remove('scossa'));
+          parla(incoraggiamento());
+        }
+      });
     });
   }
 
