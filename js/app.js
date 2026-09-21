@@ -802,23 +802,15 @@
         <h1>Impara con Me</h1>
       </div>
       <div class="menu-moduli">
-        <button class="btn-modulo blu" id="vai-numeri"><span class="emoji">🔢</span> Numeri</button>
         <button class="btn-modulo indaco" id="vai-matematica"><span class="emoji">🧮</span> Matematica</button>
-        <button class="btn-modulo verde" id="vai-lettere"><span class="emoji">🔤</span> Lettere</button>
-        <button class="btn-modulo turchese" id="vai-sillabe"><span class="emoji">🧩</span> Sillabe</button>
-        <button class="btn-modulo arancio" id="vai-parole"><span class="emoji">🗣️</span> Parole</button>
+        <button class="btn-modulo verde" id="vai-italiano"><span class="emoji">📚</span> Italiano</button>
         <button class="btn-modulo rosa" id="vai-inglese"><span class="emoji">🇬🇧</span> Inglese</button>
-        <button class="btn-modulo viola" id="vai-scrivi"><span class="emoji">✍️</span> Scrivi</button>
       </div>
     `);
 
-    document.getElementById('vai-numeri').addEventListener('click', () => { parla('Numeri!'); vaiModulo('numeri'); });
     document.getElementById('vai-matematica').addEventListener('click', () => { parla('Matematica!'); vaiMatematica(); });
-    document.getElementById('vai-lettere').addEventListener('click', () => { parla('Lettere!'); vaiModulo('lettere'); });
-    document.getElementById('vai-sillabe').addEventListener('click', () => { parla('Sillabe!'); vaiSillabeGruppi(); });
-    document.getElementById('vai-parole').addEventListener('click', () => { parla('Parole!'); vaiCategorie('parole'); });
+    document.getElementById('vai-italiano').addEventListener('click', () => { parla('Italiano!'); vaiItaliano(); });
     document.getElementById('vai-inglese').addEventListener('click', () => { parla('Inglese!'); vaiCategorie('inglese'); });
-    document.getElementById('vai-scrivi').addEventListener('click', () => { parla('Scrivi!'); vaiScrivi(); });
 
     collegaGenitori();
   }
@@ -1136,15 +1128,36 @@
     render(`
       ${barra('🧮 Matematica')}
       <div class="menu-moduli" style="justify-content:center">
+        <button class="btn-modulo indaco" id="vai-numeri"><span class="emoji">🔢</span> Numeri</button>
         <button class="btn-modulo indaco" id="vai-forme"><span class="emoji">🔷</span> Forme e Figure</button>
         <button class="btn-modulo indaco" id="vai-problemi"><span class="emoji">➕</span> Problemi</button>
         <button class="btn-modulo indaco" id="vai-linea"><span class="emoji">➖</span> La Linea dei Numeri</button>
+        <button class="btn-modulo indaco" id="vai-scrivi-numeri"><span class="emoji">✍️</span> Scrivi i Numeri</button>
       </div>
     `);
     collegaCasa();
+    document.getElementById('vai-numeri').addEventListener('click', () => { parla('Numeri!'); vaiModulo('numeri'); });
     document.getElementById('vai-forme').addEventListener('click', () => { parla('Forme e Figure!'); vaiForme(); });
     document.getElementById('vai-problemi').addEventListener('click', () => { parla('Problemi!'); vaiProblemi(); });
     document.getElementById('vai-linea').addEventListener('click', () => { parla('La linea dei numeri!'); vaiLineaNumeri(); });
+    document.getElementById('vai-scrivi-numeri').addEventListener('click', () => { parla('Scrivi i numeri!'); vaiDettato('numeri'); });
+  }
+
+  function vaiItaliano() {
+    render(`
+      ${barra('📚 Italiano')}
+      <div class="menu-moduli" style="justify-content:center">
+        <button class="btn-modulo verde" id="vai-lettere"><span class="emoji">🔤</span> Lettere</button>
+        <button class="btn-modulo verde" id="vai-sillabe"><span class="emoji">🧩</span> Sillabe</button>
+        <button class="btn-modulo verde" id="vai-parole"><span class="emoji">🗣️</span> Parole</button>
+        <button class="btn-modulo verde" id="vai-scrivi-lettere"><span class="emoji">✍️</span> Scrivi le Lettere</button>
+      </div>
+    `);
+    collegaCasa();
+    document.getElementById('vai-lettere').addEventListener('click', () => { parla('Lettere!'); vaiModulo('lettere'); });
+    document.getElementById('vai-sillabe').addEventListener('click', () => { parla('Sillabe!'); vaiSillabeGruppi(); });
+    document.getElementById('vai-parole').addEventListener('click', () => { parla('Parole!'); vaiCategorie('parole'); });
+    document.getElementById('vai-scrivi-lettere').addEventListener('click', () => { parla('Scrivi le lettere!'); vaiDettato('lettere'); });
   }
 
   // disegna una forma (SVG) dal suo tipo/colore; "rosso" è l'unica
@@ -1909,22 +1922,12 @@
   /* ---------- SCRIVI: dettato di lettere e numeri ----------
      La voce detta, il bambino scrive col dito sulla lavagna.
      Aiuti progressivi: se non riesce compare la traccia grigia
-     da ricalcare, e i controlli diventano via via più generosi. */
+     da ricalcare, e i controlli diventano via via più generosi.
+     Raggiungibile da "Scrivi i Numeri" (dentro Matematica) e "Scrivi le
+     Lettere" (dentro Italiano), entrambi chiamano vaiDettato(idModulo)
+     direttamente. */
 
   const FONTE_SCRITTURA = '"Trebuchet MS", "Segoe UI", Arial, sans-serif';
-
-  function vaiScrivi() {
-    render(`
-      ${barra('✍️ Scrivi')}
-      <div class="menu-moduli" style="justify-content:center">
-        <button class="btn-modulo blu" id="detta-numeri"><span class="emoji">🔢</span> Numeri</button>
-        <button class="btn-modulo verde" id="detta-lettere"><span class="emoji">🔤</span> Lettere</button>
-      </div>
-    `);
-    collegaCasa();
-    document.getElementById('detta-numeri').addEventListener('click', () => { parla('Numeri!'); vaiDettato('numeri'); });
-    document.getElementById('detta-lettere').addEventListener('click', () => { parla('Lettere!'); vaiDettato('lettere'); });
-  }
 
   /* Confronta il disegno del bambino con la forma del glifo.
      Il disegno viene prima riportato (spostato e scalato) sulla sagoma,
@@ -2060,7 +2063,7 @@
     const opzioniParlato = idModulo === 'lettere' ? { rate: RATE_SUONO_LETTERA } : undefined;
 
     render(`
-      ${barra('✍️ Scrivi')}
+      ${barra(idModulo === 'lettere' ? '✍️ Scrivi le Lettere' : '✍️ Scrivi i Numeri')}
       ${barraLivello()}
       <div class="gioco-domanda" style="margin-bottom:12px">
         <button class="btn-ripeti" id="btn-domanda">🔊 Ascolta</button>
