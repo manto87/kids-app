@@ -33,9 +33,20 @@ npx http-server /path/al/repo -p 8321 -s     # oppure python3 -m http.server
    Area genitori: `.lista-profili` (`[data-scegli]` per attivare, `[data-modifica]`
    per modificare), `#btn-nuovo-bambino` crea un profilo. Le statistiche e la
    difficoltà (numScelte/maiuscole) sono PER BAMBINO; velocità/voce/suoni del dispositivo.
-1. Home → Numeri → carta → dettaglio (glifo, conteggio emoji, audio) → frecce avanti/indietro.
-2. Home → Lettere → carta A → dettaglio ("A a", "a. A come Ape").
-3. Home → Parole → categoria → parola → dettaglio.
+0b. NAVIGAZIONE PER MATERIA: la home ha 3 pulsanti soli — `#vai-matematica`
+   (🧮, → `vaiMatematica()`: Numeri, Forme e Figure, Problemi, La Linea dei
+   Numeri, Scrivi i Numeri), `#vai-italiano` (📚, → `vaiItaliano()`: Lettere,
+   Sillabe, Parole, Scrivi le Lettere), `#vai-inglese` (🇬🇧, resta un modulo
+   a sé, invariato). Il pulsante 🏠 da QUALSIASI schermata (anche annidata
+   dentro un'attività dentro un menu materia) riporta SEMPRE alla home
+   principale (i 3 pulsanti materia), MAI al menu della materia — stesso
+   comportamento "un solo livello di risalita" già usato per Parole/Inglese
+   (categoria → 🏠 = home, non l'elenco categorie). `vaiScrivi()` non esiste
+   più: il dettato si raggiunge con `vaiDettato('numeri'|'lettere')`
+   chiamato direttamente dai due menu materia.
+1. Home → Matematica → Numeri → carta → dettaglio (glifo, conteggio emoji, audio) → frecce avanti/indietro.
+2. Home → Italiano → Lettere → carta A → dettaglio ("A a", "a. A come Ape").
+3. Home → Italiano → Parole → categoria → parola → dettaglio.
 4. Gioco (`#vai-gioco`, pulsante SOPRA la griglia): il prompt vocale dice il bersaglio
    ("Trova il numero tre"; per le lettere pronuncia il SUONO fonetico, es. "mm" per
    la M, non il nome "emme" — vedi punto 13);
@@ -58,7 +69,8 @@ npx http-server /path/al/repo -p 8321 -s     # oppure python3 -m http.server
 7. Offline: caricare la pagina, attendere ~1 s (installazione service worker),
    `context.setOffline(true)` + reload → la home deve ancora caricarsi.
 
-8. Scrivi/dettato (`#vai-scrivi` → `#detta-numeri`/`#detta-lettere`): la voce dice
+8. Scrivi/dettato (`#vai-scrivi-numeri` dentro Matematica, `#vai-scrivi-lettere` dentro
+   Italiano → `vaiDettato('numeri'|'lettere')`): la voce dice
    SOLO il bersaglio (es. "cinque"); si disegna sul canvas `#lavagna-canvas` con eventi pointer
    (mouse down/move/up funzionano). Scarabocchio + `#btn-fatto` → compare `.guida.visibile`
    (aiuto). Per scrivere "bene" in test: campiona i pixel del glifo da un canvas
